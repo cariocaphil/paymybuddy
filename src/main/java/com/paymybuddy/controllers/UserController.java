@@ -1,19 +1,23 @@
 package com.paymybuddy.controllers;
 
 import com.paymybuddy.models.User;
-import java.util.ArrayList;
-import java.util.Arrays;
+import com.paymybuddy.services.UserService;
 import java.util.List;
+import lombok.AllArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping(path="api/v1/users")
+@AllArgsConstructor
 public class UserController {
+  @Autowired
+  private final UserService userService;
+
   @GetMapping
   public List<User> getAllUsers(){
-    List<User> users = Arrays.asList(new User(101, "friend1@example.com", "friend1_social", 50.0, new ArrayList<>()));
-  return users;
+    return userService.getAllUsers();
   }
 }

@@ -2,6 +2,7 @@ package com.paymybuddy.services;
 
 import com.paymybuddy.models.User;
 import com.paymybuddy.repository.UserRepository;
+import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.util.List;
@@ -19,5 +20,8 @@ public class UserService {
     return userRepository.findAll();
   }
 
-  // other methods...
+  public User getUserById(long userId) {
+    Optional<User> userOptional = userRepository.findById(userId);
+    return userOptional.orElse(null);
+  }
 }

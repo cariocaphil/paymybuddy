@@ -30,6 +30,9 @@ import lombok.ToString;
 @AllArgsConstructor
 public class User {
 
+  public User(long userId, String s, String twitter, double v) {
+  }
+
   public enum SocialMediaAccount {
     Twitter,
     Facebook,

@@ -1,6 +1,9 @@
 package com.paymybuddy.models;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
@@ -26,12 +29,21 @@ import lombok.ToString;
 @NoArgsConstructor
 @AllArgsConstructor
 public class User {
+
+  public enum SocialMediaAccount {
+    Twitter,
+    Facebook,
+    // Add more social media accounts as needed
+  }
+
   @Id
   @SequenceGenerator(name = "user_sequence", sequenceName = "user_sequence", allocationSize = 1)
   @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "user_sequence")
   private long userID;
   private String email;
-  private String socialMediaAcc;
+  @Enumerated(EnumType.STRING)
+  @Column(name = "socialmediaacc")
+  private SocialMediaAccount socialMediaAcc;
   private double balance;
 
   @ManyToMany

@@ -9,7 +9,7 @@ import org.springframework.context.annotation.Configuration;
 class PaymybuddyApplicationTests {
 
 	@Configuration
-	@ComponentScan(basePackages = "com.paymybuddy") // Adjust the package scan path accordingly
+	@ComponentScan(basePackages = "com.paymybuddy.models") // Adjust the package scan path accordingly
 	static class TestConfiguration {
 		// Define any additional configurations if needed
 	}

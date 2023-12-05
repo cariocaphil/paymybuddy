@@ -1,6 +1,7 @@
 package com.paymybuddy.controllers;
 
 import com.paymybuddy.exceptions.UserNotFoundException;
+import com.paymybuddy.models.LoadMoneyRequest;
 import com.paymybuddy.models.User;
 import com.paymybuddy.services.UserService;
 import java.util.List;
@@ -49,4 +50,23 @@ public class UserController {
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error adding friend");
     }
   }
+
+  @PostMapping("/load-money")
+  public ResponseEntity<String> loadMoney(@RequestBody LoadMoneyRequest loadMoneyRequest) {
+    try {
+      long userId = loadMoneyRequest.getUserId();
+      double amount = loadMoneyRequest.getAmount();
+
+      userService.loadMoney(userId, amount);
+
+      return ResponseEntity.ok("Money loaded successfully");
+    } catch (UserNotFoundException e) {
+      return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
+    } catch (IllegalArgumentException e) {
+      return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid user ID or amount");
+    } catch (Exception e) {
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error loading money");
+    }
+  }
+
 }

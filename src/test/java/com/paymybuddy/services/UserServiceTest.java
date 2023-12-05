@@ -18,6 +18,7 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -75,7 +76,7 @@ class UserServiceTest {
     userService.addFriend(userId, friendId);
 
     // Assert
-    verify(userRepository, times(2)).save(Mockito.any());
+    verify(userRepository, times(2)).save(any());
   }
 
   @Test
@@ -88,7 +89,7 @@ class UserServiceTest {
 
     // Act and Assert
     assertThrows(UserNotFoundException.class, () -> userService.addFriend(userId, friendId));
-    verify(userRepository, never()).save(Mockito.any());
+    verify(userRepository, never()).save(any());
   }
 
 
@@ -110,5 +111,38 @@ class UserServiceTest {
     // Unhappy path: Attempt to retrieve a user with an invalid/non-existent ID
     User nonExistingUser = userService.getUserById(999L);
     assertNull(nonExistingUser);
+  }
+
+  @Test
+  void loadMoney_ValidUser_Success() {
+    // Arrange
+    long userId = 1L;
+    double amount = 50.0;
+
+    User user = new User(userId, "test@example.com", "Twitter", 100.0);
+    when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+
+    // Act
+    userService.loadMoney(userId, amount);
+
+    // Assert
+    verify(userRepository, times(1)).findById(userId);
+    verify(userRepository, times(1)).save(any(User.class));
+  }
+
+  @Test
+  void loadMoney_InvalidUser_ThrowsUserNotFoundException() {
+    // Arrange
+    long userId = 1L;
+    double amount = 50.0;
+
+    when(userRepository.findById(userId)).thenReturn(Optional.empty());
+
+    // Act/Assert
+    assertThrows(UserNotFoundException.class, () -> userService.loadMoney(userId, amount));
+
+    // Assert
+    verify(userRepository, times(1)).findById(userId);
+    verify(userRepository, never()).save(any(User.class));
   }
 }

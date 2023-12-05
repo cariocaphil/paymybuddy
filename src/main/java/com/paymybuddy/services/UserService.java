@@ -40,4 +40,23 @@ public class UserService {
     Optional<User> userOptional = userRepository.findById(userId);
     return userOptional.orElse(null);
   }
+
+  public void loadMoney(long userId, double amount) {
+    User user = getUserById(userId);
+
+    if (user == null) {
+      throw new UserNotFoundException("User not found");
+    }
+
+    // Validate the amount (positive or zero)
+    if (amount < 0) {
+      throw new IllegalArgumentException("Amount must be a positive or zero value");
+    }
+
+    // Update the user's balance
+    user.setBalance(user.getBalance() + amount);
+
+    // Save the updated user entity
+    userRepository.save(user);
+  }
 }

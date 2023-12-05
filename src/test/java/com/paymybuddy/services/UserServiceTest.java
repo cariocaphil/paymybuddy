@@ -1,6 +1,7 @@
 package com.paymybuddy.services;
 
 import com.paymybuddy.controllers.UserController;
+import com.paymybuddy.exceptions.UserNotFoundException;
 import com.paymybuddy.models.User;
 import com.paymybuddy.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
@@ -9,13 +10,18 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest
@@ -51,6 +57,38 @@ class UserServiceTest {
     // Assert the result
     assertEquals(2, allUsers.size());
     assertEquals(userList, allUsers);
+  }
+
+  @Test
+  void addFriend_SuccessfullyAddsFriend() {
+    // Arrange
+    long userId = 1L;
+    long friendId = 2L;
+
+    User user = new User(userId, "user@example.com", User.SocialMediaAccount.Twitter, 100.0);
+    User friend = new User(friendId, "friend@example.com", User.SocialMediaAccount.Facebook, 50.0);
+
+    when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+    when(userRepository.findById(friendId)).thenReturn(Optional.of(friend));
+
+    // Act
+    userService.addFriend(userId, friendId);
+
+    // Assert
+    verify(userRepository, times(2)).save(Mockito.any());
+  }
+
+  @Test
+  void addFriend_UserNotFoundThrowsException() {
+    // Arrange
+    long userId = 1L;
+    long friendId = 2L;
+
+    when(userRepository.findById(userId)).thenReturn(Optional.empty());
+
+    // Act and Assert
+    assertThrows(UserNotFoundException.class, () -> userService.addFriend(userId, friendId));
+    verify(userRepository, never()).save(Mockito.any());
   }
 
 

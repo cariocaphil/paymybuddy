@@ -8,6 +8,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
+import java.util.ArrayList;
 import java.util.List;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -33,6 +34,9 @@ public class User {
   public User(long userId, String s, String twitter, double v) {
   }
 
+  public User(long userId, String s, SocialMediaAccount twitter, double v) {
+  }
+
   public enum SocialMediaAccount {
     Twitter,
     Facebook,
@@ -55,5 +59,5 @@ public class User {
       joinColumns = @JoinColumn(name = "user_id"),
       inverseJoinColumns = @JoinColumn(name = "connected_user_id")
   )
-  private List<User> connections;
+  private List<User> connections = new ArrayList<>();
 }

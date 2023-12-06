@@ -3,6 +3,7 @@ package com.paymybuddy.controllers;
 import com.paymybuddy.exceptions.UserNotFoundException;
 import com.paymybuddy.models.LoadMoneyRequest;
 import com.paymybuddy.models.User;
+import com.paymybuddy.models.UserRegistrationRequest;
 import com.paymybuddy.services.UserService;
 import java.util.List;
 import java.util.Map;
@@ -66,6 +67,17 @@ public class UserController {
       return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid user ID or amount");
     } catch (Exception e) {
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error loading money");
+    }
+  }
+
+  @PostMapping("/registration")
+  public ResponseEntity<String> registerUser(@RequestBody UserRegistrationRequest request) {
+    try {
+      userService.registerUser(request.getEmail(), request.getSocialMediaAcc(), request.getBalance());
+
+      return ResponseEntity.ok("User registered successfully");
+    } catch (Exception e) {
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error during user registration");
     }
   }
 

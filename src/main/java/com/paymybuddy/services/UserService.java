@@ -1,7 +1,9 @@
 package com.paymybuddy.services;
 
 import com.paymybuddy.exceptions.UserNotFoundException;
+import com.paymybuddy.exceptions.UserRegistrationException;
 import com.paymybuddy.models.User;
+import com.paymybuddy.models.User.SocialMediaAccount;
 import com.paymybuddy.repository.UserRepository;
 import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -58,5 +60,21 @@ public class UserService {
 
     // Save the updated user entity
     userRepository.save(user);
+  }
+
+  public void registerUser(String email, String socialMediaAcc, double balance) {
+    // Check if a user with the given email already exists
+    if (userRepository.findByEmail(email).isPresent()) {
+      throw new UserRegistrationException("User with email " + email + " already exists");
+    }
+
+    // Create a new user with balance set to 0
+    User newUser = new User();
+    newUser.setEmail(email);
+    newUser.setSocialMediaAcc(SocialMediaAccount.valueOf(socialMediaAcc)); // Can be null
+    newUser.setBalance(0.0);
+
+    // Save the user to the database
+    userRepository.save(newUser);
   }
 }

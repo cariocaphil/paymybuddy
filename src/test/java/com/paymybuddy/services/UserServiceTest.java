@@ -154,12 +154,13 @@ class UserServiceTest {
     String email = "test@example.com";
     String socialMediaAcc = "Twitter";
     double balance = 0.0;
+    String password = "password";
 
     // Mock the userRepository behavior
     when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
 
     // Act
-    userService.registerUser(email, socialMediaAcc, balance);
+    userService.registerUser(email, socialMediaAcc, balance, password);
 
     // Assert
     // Verify that userRepository's save method is called with the expected user
@@ -176,6 +177,7 @@ class UserServiceTest {
     String email = "test@example.com";
     String socialMediaAcc = "Twitter";
     double balance = 0.0;
+    String password = "password";
 
     // Mock the userRepository behavior to simulate an existing user
     when(userRepository.findByEmail(email)).thenReturn(Optional.of(new User()));
@@ -183,7 +185,7 @@ class UserServiceTest {
     // Act and Assert
     // Verify that UserRegistrationException is thrown when trying to register an existing user
     assertThrows(UserRegistrationException.class,
-        () -> userService.registerUser(email, socialMediaAcc, balance));
+        () -> userService.registerUser(email, socialMediaAcc, balance, password));
 
     // Verify that userRepository's save method is not called
     verify(userRepository, never()).save(any(User.class));

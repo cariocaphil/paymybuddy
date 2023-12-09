@@ -52,6 +52,7 @@ public class User {
   @Column(name = "socialmediaacc")
   private SocialMediaAccount socialMediaAcc;
   private double balance;
+  private String password;
 
   @ManyToMany
   @JoinTable(

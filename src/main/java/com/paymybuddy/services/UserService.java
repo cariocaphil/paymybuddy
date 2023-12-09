@@ -62,7 +62,7 @@ public class UserService {
     userRepository.save(user);
   }
 
-  public void registerUser(String email, String socialMediaAcc, double balance) {
+  public void registerUser(String email, String socialMediaAcc, double balance, String password) {
     // Check if a user with the given email already exists
     if (userRepository.findByEmail(email).isPresent()) {
       throw new UserRegistrationException("User with email " + email + " already exists");
@@ -71,8 +71,9 @@ public class UserService {
     // Create a new user with balance set to 0
     User newUser = new User();
     newUser.setEmail(email);
-    newUser.setSocialMediaAcc(SocialMediaAccount.valueOf(socialMediaAcc)); // Can be null
+    newUser.setSocialMediaAcc(SocialMediaAccount.valueOf(socialMediaAcc));
     newUser.setBalance(0.0);
+    newUser.setPassword(password); // Set the password
 
     // Save the user to the database
     userRepository.save(newUser);

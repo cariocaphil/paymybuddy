@@ -9,5 +9,6 @@ public class UserRegistrationRequest {
   private String email;
   private String socialMediaAcc;
   private double balance;
+  private String password;
 
 }

@@ -2,6 +2,7 @@ package com.paymybuddy.services;
 
 import com.paymybuddy.controllers.UserController;
 import com.paymybuddy.exceptions.UserNotFoundException;
+import com.paymybuddy.exceptions.UserRegistrationException;
 import com.paymybuddy.models.User;
 import com.paymybuddy.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
@@ -19,6 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -143,6 +145,47 @@ class UserServiceTest {
 
     // Assert
     verify(userRepository, times(1)).findById(userId);
+    verify(userRepository, never()).save(any(User.class));
+  }
+
+  @Test
+  public void testRegisterUser() {
+    // Arrange
+    String email = "test@example.com";
+    String socialMediaAcc = "Twitter";
+    double balance = 0.0;
+
+    // Mock the userRepository behavior
+    when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
+
+    // Act
+    userService.registerUser(email, socialMediaAcc, balance);
+
+    // Assert
+    // Verify that userRepository's save method is called with the expected user
+    verify(userRepository, times(1)).save(argThat(user ->
+        user.getEmail().equals(email) &&
+            user.getSocialMediaAcc().equals(User.SocialMediaAccount.Twitter) &&
+            user.getBalance() == 0.0
+    ));
+  }
+
+  @Test
+  public void testRegisterUserWhenUserExists() {
+    // Arrange
+    String email = "test@example.com";
+    String socialMediaAcc = "Twitter";
+    double balance = 0.0;
+
+    // Mock the userRepository behavior to simulate an existing user
+    when(userRepository.findByEmail(email)).thenReturn(Optional.of(new User()));
+
+    // Act and Assert
+    // Verify that UserRegistrationException is thrown when trying to register an existing user
+    assertThrows(UserRegistrationException.class,
+        () -> userService.registerUser(email, socialMediaAcc, balance));
+
+    // Verify that userRepository's save method is not called
     verify(userRepository, never()).save(any(User.class));
   }
 }

@@ -8,6 +8,7 @@ import com.paymybuddy.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
 import java.util.Arrays;
 import java.util.List;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -15,6 +16,11 @@ import org.mockito.Mockito;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import java.util.Optional;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Bean;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -36,32 +42,34 @@ class UserServiceTest {
   @InjectMocks
   private UserService userService;
 
+  // Create a PasswordEncoder field
+  @MockBean
+  private PasswordEncoder passwordEncoder;
+
+  @BeforeEach
+  void setUp() {
+    // Instantiate the PasswordEncoder
+    this.passwordEncoder = new BCryptPasswordEncoder();
+    // Initialize the UserService with the mocked UserRepository and real PasswordEncoder
+    this.userService = new UserService(userRepository, passwordEncoder);
+  }
+
   @Test
   void testGetAllUsers() {
-    // Mock the UserRepository or use an in-memory database for testing
-    UserRepository userRepositoryMock = mock(UserRepository.class);
-
     // Mock the behavior of the userRepository.findAll() method
-    User user1 = new User(1L, "user1@example.com", "Twitter", 100.0);
-    User user2 = new User(2L, "user2@example.com", "Facebook", 150.0);
+    User user1 = new User(1L, "user1@example.com", User.SocialMediaAccount.Twitter, 100.0);
+    User user2 = new User(2L, "user2@example.com", User.SocialMediaAccount.Facebook, 150.0);
     List<User> userList = Arrays.asList(user1, user2);
 
-    when(userRepositoryMock.findAll()).thenReturn(userList);
-
-    // Create a UserService instance with the mocked UserRepository
-    UserService userService = new UserService(userRepositoryMock);
-
-    // Create a UserController instance with the UserService
-    UserController userController = new UserController(userService);
+    when(userRepository.findAll()).thenReturn(userList);
 
     // Call the method to get all users
-    List<User> allUsers = userController.getAllUsers();
+    List<User> allUsers = userService.getAllUsers();
 
     // Assert the result
     assertEquals(2, allUsers.size());
     assertEquals(userList, allUsers);
   }
-
   @Test
   void addFriend_SuccessfullyAddsFriend() {
     // Arrange
@@ -167,7 +175,8 @@ class UserServiceTest {
     verify(userRepository, times(1)).save(argThat(user ->
         user.getEmail().equals(email) &&
             user.getSocialMediaAcc().equals(User.SocialMediaAccount.Twitter) &&
-            user.getBalance() == 0.0
+            user.getBalance() == 0.0 &&
+            user.getPassword() != null // Password should not be null
     ));
   }
 

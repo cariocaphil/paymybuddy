@@ -6,17 +6,25 @@ import com.paymybuddy.models.User;
 import com.paymybuddy.models.User.SocialMediaAccount;
 import com.paymybuddy.repository.UserRepository;
 import java.util.Optional;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Service;
 import java.util.List;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import java.util.Collections;
 
 @Service
-public class UserService {
+public class UserService implements UserDetailsService {
   private final UserRepository userRepository;
+  private final PasswordEncoder passwordEncoder;
 
-  @Autowired
-  public UserService(UserRepository userRepository) {
+  public UserService(UserRepository userRepository, @Lazy PasswordEncoder passwordEncoder) {
     this.userRepository = userRepository;
+    this.passwordEncoder = passwordEncoder;
   }
 
   public List<User> getAllUsers() {
@@ -77,5 +85,18 @@ public class UserService {
 
     // Save the user to the database
     userRepository.save(newUser);
+  }
+
+  @Override
+  public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+    com.paymybuddy.models.User user = userRepository.findByEmail(username)
+        .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + username));
+
+    // Create a list of GrantedAuthority based on your user roles or privileges
+    // For simplicity, we're using an empty list here since roles/privileges are not defined
+    List<SimpleGrantedAuthority> authorities = Collections.emptyList();
+
+    // Return a Spring Security User, which is different from your User entity
+    return new org.springframework.security.core.userdetails.User(user.getEmail(), user.getPassword(), authorities);
   }
 }

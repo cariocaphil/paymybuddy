@@ -3,7 +3,6 @@ package com.paymybuddy.controllers;
 import com.paymybuddy.exceptions.UserNotFoundException;
 import com.paymybuddy.models.LoadMoneyRequest;
 import com.paymybuddy.models.User;
-import com.paymybuddy.models.UserRegistrationRequest;
 import com.paymybuddy.services.UserService;
 import java.util.List;
 import java.util.Map;
@@ -16,7 +15,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -67,16 +65,6 @@ public class UserController {
       return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid user ID or amount");
     } catch (Exception e) {
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error loading money");
-    }
-  }
-
-  @PostMapping("/registration")
-  public ResponseEntity<String> registerUser(@RequestBody UserRegistrationRequest request) {
-    try {
-      userService.registerUser(request.getEmail(), request.getSocialMediaAcc(), request.getBalance(), request.getPassword());
-      return ResponseEntity.ok("User registered successfully");
-    } catch (Exception e) {
-      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error during user registration");
     }
   }
 

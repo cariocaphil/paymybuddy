@@ -9,4 +9,10 @@ public class LoadMoneyRequest {
   private long userId;
   private double amount;
 
+  public LoadMoneyRequest(long userId, double amount) {
+  }
+
+  public LoadMoneyRequest() {
+
+  }
 }

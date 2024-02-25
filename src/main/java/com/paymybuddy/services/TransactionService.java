@@ -4,6 +4,7 @@ import com.paymybuddy.models.Transaction;
 import com.paymybuddy.models.User;
 import com.paymybuddy.repository.TransactionRepository;
 import com.paymybuddy.repository.UserRepository;
+import java.time.LocalDateTime;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -40,6 +41,8 @@ public class TransactionService {
     // Save both the sender and receiver to update their balances in the database
     userRepository.save(sender);
     userRepository.save(receiver);
+
+    transaction.setTimestamp(LocalDateTime.now());
 
     // Finally, save the transaction
     transactionRepository.save(transaction);

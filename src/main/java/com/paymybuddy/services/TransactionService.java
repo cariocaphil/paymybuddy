@@ -19,7 +19,11 @@ public class TransactionService {
 
   @Transactional
   public void makePayment(Transaction transaction) {
-    User sender = transaction.getSender();
+    // Fetch the current state of the sender and receiver from the database
+    User sender = userRepository.findById(transaction.getSender().getUserID())
+        .orElseThrow(() -> new IllegalArgumentException("Sender not found."));
+    User receiver = userRepository.findById(transaction.getReceiver().getUserID())
+        .orElseThrow(() -> new IllegalArgumentException("Receiver not found."));
 
     // Check if sender's balance is sufficient
     double totalDeduction = transaction.getAmount() + transaction.getFee();
@@ -29,14 +33,15 @@ public class TransactionService {
 
     // Deduct the transaction amount and fee from sender's balance
     sender.setBalance(sender.getBalance() - totalDeduction);
-    userRepository.save(sender);
 
     // Add the transaction amount to the receiver's balance
-    User receiver = transaction.getReceiver();
     receiver.setBalance(receiver.getBalance() + transaction.getAmount());
+
+    // Save both the sender and receiver to update their balances in the database
+    userRepository.save(sender);
     userRepository.save(receiver);
 
-    // Save the transaction
+    // Finally, save the transaction
     transactionRepository.save(transaction);
   }
 }

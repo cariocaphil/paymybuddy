@@ -30,6 +30,8 @@ public class SecurityConfig {
         .authorizeHttpRequests(authz -> authz
             .requestMatchers("/register", "/login").permitAll()
             .anyRequest().authenticated())
+        .httpBasic()
+        .and()
         .formLogin(formLogin -> formLogin
             .permitAll()
             .defaultSuccessUrl("/login-success", true))

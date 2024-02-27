@@ -24,4 +24,15 @@ public class TransactionController {
           .body("Error during payment processing: " + e.getMessage());
     }
   }
+
+  @GetMapping("/{transactionId}")
+  public ResponseEntity<Transaction> getTransaction(@PathVariable Long transactionId) {
+    try {
+      Transaction transaction = transactionService.getTransactionById(transactionId);
+      return ResponseEntity.ok(transaction);
+    } catch (Exception e) {
+      return ResponseEntity.status(HttpStatus.NOT_FOUND)
+          .body(null); // or provide a more specific error message if needed
+    }
+  }
 }

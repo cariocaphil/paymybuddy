@@ -104,4 +104,36 @@ public class TransactionServiceTest {
     verify(transactionRepository, never()).save(any(Transaction.class));
   }
 
+  @Test
+  void getTransactionById_WithValidId_ReturnsTransaction() {
+    // Arrange
+    when(transactionRepository.findById(transaction.getTransactionID())).thenReturn(Optional.of(transaction));
+
+    // Act
+    Transaction foundTransaction = transactionService.getTransactionById(transaction.getTransactionID());
+
+    // Assert
+    assertEquals(transaction, foundTransaction);
+
+    // Verify interaction
+    verify(transactionRepository).findById(transaction.getTransactionID());
+  }
+
+  @Test
+  void getTransactionById_WithInvalidId_ThrowsException() {
+    // Arrange
+    long invalidTransactionId = 999L; // Assume this ID does not exist
+    when(transactionRepository.findById(invalidTransactionId)).thenReturn(Optional.empty());
+
+    // Act & Assert
+    Exception exception = assertThrows(IllegalArgumentException.class, () -> {
+      transactionService.getTransactionById(invalidTransactionId);
+    });
+
+    // Assert the exception message
+    assertEquals("Transaction not found.", exception.getMessage());
+
+    // Verify interaction
+    verify(transactionRepository).findById(invalidTransactionId);
+  }
 }

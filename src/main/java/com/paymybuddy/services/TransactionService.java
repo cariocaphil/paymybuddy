@@ -47,4 +47,9 @@ public class TransactionService {
     // Finally, save the transaction
     transactionRepository.save(transaction);
   }
+
+  public Transaction getTransactionById(Long transactionId) {
+    return transactionRepository.findById(transactionId)
+        .orElseThrow(() -> new IllegalArgumentException("Transaction not found."));
+  }
 }

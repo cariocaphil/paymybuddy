@@ -33,7 +33,6 @@ public class TransactionServiceTest {
   private User receiver;
   private Transaction transaction;
 
-
   @BeforeEach
   void setUp() {
     sender = new User();
@@ -55,21 +54,18 @@ public class TransactionServiceTest {
     transaction.setFee(5.0);
     transaction.setSender(sender);
     transaction.setReceiver(receiver);
-
-    when(userRepository.findById(anyLong())).thenAnswer(invocation -> {
-      Long id = invocation.getArgument(0);
-      if (id.equals(sender.getUserID())) return Optional.of(sender);
-      else if (id.equals(receiver.getUserID())) return Optional.of(receiver);
-      return Optional.empty();
-    });
   }
 
   @Test
   void makePayment_sufficientFunds_transfersFundsCorrectly() {
-    // Execute the method under test
+    // Arrange
+    when(userRepository.findById(sender.getUserID())).thenReturn(Optional.of(sender));
+    when(userRepository.findById(receiver.getUserID())).thenReturn(Optional.of(receiver));
+
+    // Act
     transactionService.makePayment(transaction);
 
-    // Assertions and verifications
+    // Assert
     assertEquals(445.0, sender.getBalance());
     assertEquals(250.0, receiver.getBalance());
 
@@ -83,18 +79,17 @@ public class TransactionServiceTest {
 
   @Test
   void makePayment_insufficientFunds_throwsException() {
-    // Adjust sender's balance to be insufficient for the transaction and fee
+    // Arrange
     sender.setBalance(40.0); // Less than the transaction amount + fee
-
     when(userRepository.findById(sender.getUserID())).thenReturn(Optional.of(sender));
     when(userRepository.findById(receiver.getUserID())).thenReturn(Optional.of(receiver));
 
-    // Attempt to make the payment and verify that the expected exception is thrown
+    // Act & Assert
     Exception exception = assertThrows(IllegalStateException.class, () -> {
       transactionService.makePayment(transaction);
     });
 
-    // Verify the exception message
+    // Assert the exception message
     assertEquals("Insufficient funds for this transaction.", exception.getMessage());
 
     // Verify that userRepository.save() was never called since the transaction should fail
@@ -104,4 +99,37 @@ public class TransactionServiceTest {
     verify(transactionRepository, never()).save(any(Transaction.class));
   }
 
+  @Test
+  void getTransactionById_WithValidId_ReturnsTransaction() {
+    // Arrange
+    Long validId = transaction.getTransactionID();
+    when(transactionRepository.findById(validId)).thenReturn(Optional.of(transaction));
+
+    // Act
+    Transaction foundTransaction = transactionService.getTransactionById(validId);
+
+    // Assert
+    assertEquals(transaction, foundTransaction);
+
+    // Verify interaction
+    verify(transactionRepository).findById(validId);
+  }
+
+  @Test
+  void getTransactionById_WithInvalidId_ThrowsException() {
+    // Arrange
+    Long invalidTransactionId = 999L; // Assume this ID does not exist
+    when(transactionRepository.findById(invalidTransactionId)).thenReturn(Optional.empty());
+
+    // Act & Assert
+    Exception exception = assertThrows(IllegalArgumentException.class, () -> {
+      transactionService.getTransactionById(invalidTransactionId);
+    });
+
+    // Assert the exception message
+    assertEquals("Transaction not found.", exception.getMessage());
+
+    // Verify interaction
+    verify(transactionRepository).findById(invalidTransactionId);
+  }
 }

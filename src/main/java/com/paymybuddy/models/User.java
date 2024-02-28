@@ -54,6 +54,11 @@ public class User {
   private double balance;
   private String password;
 
+  // Bank account details
+  private String bankAccountNumber;
+  private String bankName;
+  private String bankRoutingNumber; // primarily used in the United States
+
   @ManyToMany
   @JoinTable(
       name = "user_connections",

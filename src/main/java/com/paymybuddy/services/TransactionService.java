@@ -2,6 +2,7 @@ package com.paymybuddy.services;
 
 import com.paymybuddy.models.Transaction;
 import com.paymybuddy.models.User;
+import com.paymybuddy.models.WithdrawRequest;
 import com.paymybuddy.repository.TransactionRepository;
 import com.paymybuddy.repository.UserRepository;
 import java.time.LocalDateTime;
@@ -52,4 +53,38 @@ public class TransactionService {
     return transactionRepository.findById(transactionId)
         .orElseThrow(() -> new IllegalArgumentException("Transaction not found."));
   }
+
+  @Transactional
+  public void withdrawToBank(Long userId, double amount) {
+    User user = userRepository.findById(userId)
+        .orElseThrow(() -> new IllegalArgumentException("User not found with ID: " + userId));
+
+    // Check if the user has enough balance to cover the withdrawal
+    if (user.getBalance() < amount) {
+      throw new IllegalStateException("Insufficient funds for withdrawal.");
+    }
+
+    // Deduct the withdrawal amount from the user's balance
+    double newBalance = user.getBalance() - amount;
+    user.setBalance(newBalance);
+    userRepository.save(user);
+
+    // Record the withdrawal as a transaction
+    Transaction transaction = new Transaction();
+    transaction.setAmount(-amount); // Negative to indicate withdrawal
+    transaction.setTimestamp(LocalDateTime.now());
+    transaction.setDescription("Withdrawal to bank account: " + user.getBankName());
+    transaction.setFee(0); // Assuming no fee, adjust as necessary
+    transaction.setSender(user); // In this context, user is both sender and receiver
+    transaction.setReceiver(null); // No external receiver for a withdrawal
+    transactionRepository.save(transaction);
+
+    // Here you would typically call an external service to handle the bank transfer.
+    // For example:
+    // bankTransferService.transfer(user.getBankAccountNumber(), user.getBankRoutingNumber(), amount);
+
+    // Note: The actual transfer to the bank is a complex process and would involve secure communication
+    // with the bank's API or financial services provider.
+  }
+
 }

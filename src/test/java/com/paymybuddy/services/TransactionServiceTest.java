@@ -132,4 +132,44 @@ public class TransactionServiceTest {
     // Verify interaction
     verify(transactionRepository).findById(invalidTransactionId);
   }
+
+  @Test
+  void withdrawToBank_WithSufficientFunds_PerformsWithdrawalSuccessfully() {
+    // Given
+    Long userId = sender.getUserID();
+    double initialBalance = sender.getBalance();
+    double withdrawalAmount = 100.0;
+    double expectedBalanceAfterWithdrawal = initialBalance - withdrawalAmount;
+    when(userRepository.findById(userId)).thenReturn(Optional.of(sender));
+
+    // When
+    transactionService.withdrawToBank(userId, withdrawalAmount);
+
+    // Then
+    assertEquals(expectedBalanceAfterWithdrawal, sender.getBalance(), "The balance after withdrawal is incorrect.");
+
+    // Verify userRepository.save() was called to persist the new balance
+    verify(userRepository).save(sender);
+
+    // Verify a withdrawal transaction was recorded
+    verify(transactionRepository).save(any(Transaction.class));
+  }
+
+  @Test
+  void withdrawToBank_WithInsufficientFunds_ThrowsException() {
+    // Arrange
+    Long userId = sender.getUserID();
+    double withdrawalAmount = sender.getBalance() + 1.0; // More than the user has
+    when(userRepository.findById(userId)).thenReturn(Optional.of(sender));
+
+    // Act & Assert
+    assertThrows(IllegalStateException.class, () -> {
+      transactionService.withdrawToBank(userId, withdrawalAmount);
+    });
+
+    // No need to assert the exception message here as it's already covered in the service logic,
+    // but ensure that no state changes were persisted in case of failure
+    verify(userRepository, never()).save(sender);
+    verify(transactionRepository, never()).save(any(Transaction.class));
+  }
 }

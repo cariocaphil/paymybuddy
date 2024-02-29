@@ -16,11 +16,14 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import java.util.Collections;
+import org.tinylog.Logger;
+import org.tinylog.TaggedLogger;
 
 @Service
 public class UserService implements UserDetailsService {
   private final UserRepository userRepository;
   private final PasswordEncoder passwordEncoder;
+  private static final TaggedLogger logger = Logger.tag("UserService");
 
   public UserService(UserRepository userRepository, @Lazy PasswordEncoder passwordEncoder) {
     this.userRepository = userRepository;
@@ -28,22 +31,26 @@ public class UserService implements UserDetailsService {
   }
 
   public List<User> getAllUsers() {
-    return userRepository.findAll();
+    List<User> users = userRepository.findAll();
+    logger.info("Fetched all users");
+    return users;
   }
 
   public void addFriend(long userId, long friendId) {
+    logger.info("Attempting to add friend with id: {} to user with id: {}", friendId, userId);
     User user = getUserById(userId);
     User friend = getUserById(friendId);
 
     if (user == null || friend == null) {
+      logger.error("User or friend not found for ids: {}, {}", userId, friendId);
       throw new UserNotFoundException("User or friend not found");
     }
 
     user.getConnections().add(friend);
     friend.getConnections().add(user);
-
     userRepository.save(user);
     userRepository.save(friend);
+    logger.info("Successfully added friend relation between users with ids: {} and {}", userId, friendId);
   }
 
   public User getUserById(long userId) {
@@ -52,51 +59,48 @@ public class UserService implements UserDetailsService {
   }
 
   public void loadMoney(long userId, double amount) {
+    logger.info("Loading {} money to user with id: {}", amount, userId);
     User user = getUserById(userId);
 
     if (user == null) {
+      logger.error("User not found for id: {}", userId);
       throw new UserNotFoundException("User not found");
     }
 
-    // Validate the amount (positive or zero)
     if (amount < 0) {
+      logger.error("Attempt to load a negative amount: {} to user with id: {}", amount, userId);
       throw new IllegalArgumentException("Amount must be a positive or zero value");
     }
 
-    // Update the user's balance
     user.setBalance(user.getBalance() + amount);
-
-    // Save the updated user entity
     userRepository.save(user);
+    logger.info("Successfully loaded money to user with id: {}", userId);
   }
 
   public void registerUser(String email, String socialMediaAcc, double balance, String password) {
-    // Check if a user with the given email already exists
+    logger.info("Registering user with email: {}", email);
     if (userRepository.findByEmail(email).isPresent()) {
+      logger.error("User registration attempt failed, email already exists: {}", email);
       throw new UserRegistrationException("User with email " + email + " already exists");
     }
 
-    // Create a new user with balance set to 0
     User newUser = new User();
     newUser.setEmail(email);
     newUser.setSocialMediaAcc(SocialMediaAccount.valueOf(socialMediaAcc));
     newUser.setBalance(0.0);
-    newUser.setPassword(password); // Set the password
-
-    // Save the user to the database
+    newUser.setPassword(passwordEncoder.encode(password));
     userRepository.save(newUser);
+    logger.info("User registered successfully with email: {}", email);
   }
 
   @Override
   public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-    com.paymybuddy.models.User user = userRepository.findByEmail(username)
+    logger.info("Loading user by username: {}", username);
+    User user = userRepository.findByEmail(username)
         .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + username));
 
-    // Create a list of GrantedAuthority based on your user roles or privileges
-    // For simplicity, we're using an empty list here since roles/privileges are not defined
     List<SimpleGrantedAuthority> authorities = Collections.emptyList();
-
-    // Return a Spring Security User, which is different from your User entity
+    logger.debug("User found with username: {}, proceeding with authentication", username);
     return new org.springframework.security.core.userdetails.User(user.getEmail(), user.getPassword(), authorities);
   }
 }

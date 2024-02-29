@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import org.tinylog.Logger;
 @Service
 public class TransactionService {
 
@@ -21,6 +21,7 @@ public class TransactionService {
 
   @Transactional
   public void makePayment(Transaction transaction) {
+    Logger.info("Attempting to process payment for transaction: {}", transaction);
     // Fetch the current state of the sender and receiver from the database
     User sender = userRepository.findById(transaction.getSender().getUserID())
         .orElseThrow(() -> new IllegalArgumentException("Sender not found."));
@@ -30,6 +31,7 @@ public class TransactionService {
     // Check if sender's balance is sufficient
     double totalDeduction = transaction.getAmount() + transaction.getFee();
     if (sender.getBalance() < totalDeduction) {
+      Logger.error("Insufficient funds for transaction: {}", transaction);
       throw new IllegalStateException("Insufficient funds for this transaction.");
     }
 
@@ -47,20 +49,26 @@ public class TransactionService {
 
     // Finally, save the transaction
     transactionRepository.save(transaction);
+    Logger.info("Payment processed successfully for transaction: {}", transaction);
   }
 
   public Transaction getTransactionById(Long transactionId) {
-    return transactionRepository.findById(transactionId)
+    Logger.info("Retrieving transaction with ID: {}", transactionId);
+    Transaction transaction = transactionRepository.findById(transactionId)
         .orElseThrow(() -> new IllegalArgumentException("Transaction not found."));
+    Logger.info("Transaction retrieved successfully: {}", transaction);
+    return transaction;
   }
 
   @Transactional
   public void withdrawToBank(Long userId, double amount) {
+    Logger.info("Initiating withdrawal to bank for user ID: {} and amount: {}", userId, amount);
     User user = userRepository.findById(userId)
         .orElseThrow(() -> new IllegalArgumentException("User not found with ID: " + userId));
 
     // Check if the user has enough balance to cover the withdrawal
     if (user.getBalance() < amount) {
+      Logger.error("Insufficient funds for withdrawal for user ID: {}", userId);
       throw new IllegalStateException("Insufficient funds for withdrawal.");
     }
 
@@ -85,6 +93,7 @@ public class TransactionService {
 
     // Note: The actual transfer to the bank is a complex process and would involve secure communication
     // with the bank's API or financial services provider.
+    Logger.info("Withdrawal to bank completed successfully for user ID: {}", userId);
   }
 
 }

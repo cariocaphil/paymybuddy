@@ -59,6 +59,17 @@ public class TransactionServiceTest {
   @Test
   void makePayment_sufficientFunds_transfersFundsCorrectly() {
     // Arrange
+    double transactionAmount = 50.0;
+    double feePercentage = 0.005; // 0.5% fee
+    double fee = transactionAmount * feePercentage;
+    double totalDeduction = transactionAmount + fee;
+
+    sender.setBalance(500.0); // Ensuring sufficient funds
+    receiver.setBalance(200.0);
+
+    transaction.setAmount(transactionAmount);
+    transaction.setFee(fee);
+
     when(userRepository.findById(sender.getUserID())).thenReturn(Optional.of(sender));
     when(userRepository.findById(receiver.getUserID())).thenReturn(Optional.of(receiver));
 
@@ -66,8 +77,10 @@ public class TransactionServiceTest {
     transactionService.makePayment(transaction);
 
     // Assert
-    assertEquals(445.0, sender.getBalance());
-    assertEquals(250.0, receiver.getBalance());
+    double expectedSenderBalance = 500.0 - totalDeduction;
+    double expectedReceiverBalance = 200.0 + transactionAmount;
+    assertEquals(expectedSenderBalance, sender.getBalance(), "Sender's balance should be deducted by amount + fee");
+    assertEquals(expectedReceiverBalance, receiver.getBalance(), "Receiver's balance should be increased by amount only");
 
     // Verify that save was called on both users
     verify(userRepository).save(sender);

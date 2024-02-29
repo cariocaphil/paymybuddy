@@ -27,11 +27,17 @@ public class TransactionService {
     User receiver = userRepository.findById(transaction.getReceiver().getUserID())
         .orElseThrow(() -> new IllegalArgumentException("Receiver not found."));
 
-    // Check if sender's balance is sufficient
-    double totalDeduction = transaction.getAmount() + transaction.getFee();
+    // Calculate the fee as 0.5% of the transaction amount
+    double fee = transaction.getAmount() * 0.005;
+
+    // Check if sender's balance is sufficient including the fee
+    double totalDeduction = transaction.getAmount() + fee;
     if (sender.getBalance() < totalDeduction) {
       throw new IllegalStateException("Insufficient funds for this transaction.");
     }
+
+    // Set the fee in the transaction
+    transaction.setFee(fee);
 
     // Deduct the transaction amount and fee from sender's balance
     sender.setBalance(sender.getBalance() - totalDeduction);

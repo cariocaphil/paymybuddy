@@ -1,6 +1,7 @@
 package com.paymybuddy.controllers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.paymybuddy.models.Currency;
 import com.paymybuddy.models.LoadMoneyRequest;
 import com.paymybuddy.models.User;
 import com.paymybuddy.services.UserService;
@@ -79,7 +80,7 @@ public class UserControllerTest {
 
     mockMvc.perform(post("/api/v1/users/load-money")
             .contentType(MediaType.APPLICATION_JSON)
-            .content(new ObjectMapper().writeValueAsString(new LoadMoneyRequest(userId, amount))))
+            .content(new ObjectMapper().writeValueAsString(new LoadMoneyRequest(userId, amount, Currency.EUR))))
         .andExpect(status().isOk())
         .andExpect(content().string("Money loaded successfully"));
   }

@@ -29,11 +29,7 @@ public class AuthController {
   public ResponseEntity<String> registerUser(@RequestBody UserRegistrationRequest request) {
     Logger.info("Attempting to register new user with email: {}", request.getEmail());
     try {
-      // Hash the user's password using the PasswordEncoder
-      String hashedPassword = passwordEncoder.encode(request.getPassword());
-
-      userService.registerUser(request.getEmail(), request.getSocialMediaAcc(),
-          request.getBalance(), hashedPassword);
+      userService.registerUser(request);
 
       Logger.info("User registered successfully with email: {}", request.getEmail());
       return ResponseEntity.ok("User registered successfully");

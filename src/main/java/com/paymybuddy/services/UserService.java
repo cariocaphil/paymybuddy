@@ -2,8 +2,10 @@ package com.paymybuddy.services;
 
 import com.paymybuddy.exceptions.UserNotFoundException;
 import com.paymybuddy.exceptions.UserRegistrationException;
+import com.paymybuddy.models.Currency;
 import com.paymybuddy.models.User;
 import com.paymybuddy.models.User.SocialMediaAccount;
+import com.paymybuddy.models.UserRegistrationRequest;
 import com.paymybuddy.repository.UserRepository;
 import java.util.Optional;
 import org.springframework.context.annotation.Lazy;
@@ -23,11 +25,15 @@ import org.tinylog.TaggedLogger;
 public class UserService implements UserDetailsService {
   private final UserRepository userRepository;
   private final PasswordEncoder passwordEncoder;
+  private final CurrencyConversionService currencyConversionService;
+
   private static final TaggedLogger logger = Logger.tag("UserService");
 
-  public UserService(UserRepository userRepository, @Lazy PasswordEncoder passwordEncoder) {
+  public UserService(UserRepository userRepository, @Lazy PasswordEncoder passwordEncoder, CurrencyConversionService currencyConversionService)
+ {
     this.userRepository = userRepository;
     this.passwordEncoder = passwordEncoder;
+    this.currencyConversionService = currencyConversionService;
   }
 
   public List<User> getAllUsers() {
@@ -58,7 +64,7 @@ public class UserService implements UserDetailsService {
     return userOptional.orElse(null);
   }
 
-  public void loadMoney(long userId, double amount) {
+  public void loadMoney(long userId, double amount, Currency currency) {
     logger.info("Loading {} money to user with id: {}", amount, userId);
     User user = getUserById(userId);
 
@@ -72,26 +78,40 @@ public class UserService implements UserDetailsService {
       throw new IllegalArgumentException("Amount must be a positive or zero value");
     }
 
-    user.setBalance(user.getBalance() + amount);
+    // Ensure user has a currency set, default to USD if not
+    Currency userCurrency = user.getCurrency() != null ? user.getCurrency() : Currency.USD;
+    double adjustedAmount = amount;
+
+    if (!userCurrency.equals(currency)) {
+      adjustedAmount = currencyConversionService.convertCurrency(amount, currency, userCurrency);
+    }
+    user.setBalance(user.getBalance() + adjustedAmount);
     userRepository.save(user);
-    logger.info("Successfully loaded money to user with id: {}", userId);
+    logger.info("Successfully loaded {} {} to user with id: {}. New balance: {}", adjustedAmount, userCurrency, userId, user.getBalance());
   }
 
-  public void registerUser(String email, String socialMediaAcc, double balance, String password) {
-    logger.info("Registering user with email: {}", email);
-    if (userRepository.findByEmail(email).isPresent()) {
-      logger.error("User registration attempt failed, email already exists: {}", email);
-      throw new UserRegistrationException("User with email " + email + " already exists");
+  public void registerUser(UserRegistrationRequest request) {
+    logger.info("Registering user with email: {}", request.getEmail());
+    if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+      logger.error("User registration attempt failed, email already exists: {}", request.getEmail());
+      throw new UserRegistrationException("User with email " + request.getEmail() + " already exists");
     }
 
     User newUser = new User();
-    newUser.setEmail(email);
-    newUser.setSocialMediaAcc(SocialMediaAccount.valueOf(socialMediaAcc));
-    newUser.setBalance(0.0);
-    newUser.setPassword(passwordEncoder.encode(password));
+    newUser.setEmail(request.getEmail());
+    newUser.setSocialMediaAcc(SocialMediaAccount.valueOf(request.getSocialMediaAcc()));
+    newUser.setBalance(request.getBalance());
+    newUser.setCurrency(Currency.valueOf(request.getCurrency())); // Assuming you've already added a currency field
+    newUser.setPassword(passwordEncoder.encode(request.getPassword()));
+    // Set bank account details
+    newUser.setBankAccountNumber(request.getBankAccountNumber());
+    newUser.setBankName(request.getBankName());
+    newUser.setBankRoutingNumber(request.getBankRoutingNumber());
+
     userRepository.save(newUser);
-    logger.info("User registered successfully with email: {}", email);
+    logger.info("User registered successfully with email: {}", request.getEmail());
   }
+
 
   @Override
   public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {

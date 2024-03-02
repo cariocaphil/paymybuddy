@@ -3,13 +3,16 @@ package com.paymybuddy.services;
 import com.paymybuddy.controllers.UserController;
 import com.paymybuddy.exceptions.UserNotFoundException;
 import com.paymybuddy.exceptions.UserRegistrationException;
+import com.paymybuddy.models.Currency;
 import com.paymybuddy.models.User;
+import com.paymybuddy.models.UserRegistrationRequest;
 import com.paymybuddy.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
 import java.util.Arrays;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -23,10 +26,15 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentCaptor.forClass;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -46,12 +54,22 @@ class UserServiceTest {
   @MockBean
   private PasswordEncoder passwordEncoder;
 
+  @Mock
+  private CurrencyConversionService currencyConversionService;
+
   @BeforeEach
   void setUp() {
     // Instantiate the PasswordEncoder
     this.passwordEncoder = new BCryptPasswordEncoder();
+
+    this.currencyConversionService = mock(CurrencyConversionService.class);
+
     // Initialize the UserService with the mocked UserRepository and real PasswordEncoder
-    this.userService = new UserService(userRepository, passwordEncoder);
+    this.userService = new UserService(userRepository, passwordEncoder, currencyConversionService);
+
+    // Assuming a direct currency conversion without rates for simplicity in tests
+    given(currencyConversionService.convertCurrency(anyDouble(), any(Currency.class), any(Currency.class)))
+        .willAnswer(invocation -> invocation.getArgument(0));
   }
 
   @Test
@@ -128,12 +146,14 @@ class UserServiceTest {
     // Arrange
     long userId = 1L;
     double amount = 50.0;
+    Currency currency = Currency.EUR; // Define the currency
 
-    User user = new User(userId, "test@example.com", "Twitter", 100.0);
+    User user = new User(userId, "test@example.com", User.SocialMediaAccount.Twitter, 100.0);
+    user.setCurrency(currency); // Set the currency for the user
     when(userRepository.findById(userId)).thenReturn(Optional.of(user));
 
     // Act
-    userService.loadMoney(userId, amount);
+    userService.loadMoney(userId, amount, currency); // Make sure to pass the currency to loadMoney
 
     // Assert
     verify(userRepository, times(1)).findById(userId);
@@ -145,11 +165,12 @@ class UserServiceTest {
     // Arrange
     long userId = 1L;
     double amount = 50.0;
+    Currency currency = Currency.USD;
 
     when(userRepository.findById(userId)).thenReturn(Optional.empty());
 
     // Act/Assert
-    assertThrows(UserNotFoundException.class, () -> userService.loadMoney(userId, amount));
+    assertThrows(UserNotFoundException.class, () -> userService.loadMoney(userId, amount, currency));
 
     // Assert
     verify(userRepository, times(1)).findById(userId);
@@ -159,25 +180,29 @@ class UserServiceTest {
   @Test
   public void testRegisterUser() {
     // Arrange
-    String email = "test@example.com";
-    String socialMediaAcc = "Twitter";
-    double balance = 0.0;
-    String password = "password";
+    UserRegistrationRequest request = new UserRegistrationRequest();
+    request.setEmail("test@example.com");
+    request.setSocialMediaAcc("Twitter");
+    request.setBalance(0.0);
+    request.setPassword("password");
+    request.setCurrency(String.valueOf(Currency.EUR));
 
-    // Mock the userRepository behavior
-    when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
+    // Assume no existing user with the provided email
+    when(userRepository.findByEmail(request.getEmail())).thenReturn(Optional.empty());
 
     // Act
-    userService.registerUser(email, socialMediaAcc, balance, password);
+    userService.registerUser(request); // Adjusted to pass the entire request
 
     // Assert
-    // Verify that userRepository's save method is called with the expected user
-    verify(userRepository, times(1)).save(argThat(user ->
-        user.getEmail().equals(email) &&
-            user.getSocialMediaAcc().equals(User.SocialMediaAccount.Twitter) &&
-            user.getBalance() == 0.0 &&
-            user.getPassword() != null // Password should not be null
-    ));
+    ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
+    verify(userRepository).save(userCaptor.capture());
+    User savedUser = userCaptor.getValue();
+
+    // Verify the saved user details
+    assertEquals(request.getEmail(), savedUser.getEmail());
+    assertEquals(User.SocialMediaAccount.valueOf(request.getSocialMediaAcc()), savedUser.getSocialMediaAcc());
+    assertEquals(0.0, savedUser.getBalance());
+    assertTrue(passwordEncoder.matches("password", savedUser.getPassword()), "Password should be encoded and match");
   }
 
   @Test
@@ -187,14 +212,28 @@ class UserServiceTest {
     String socialMediaAcc = "Twitter";
     double balance = 0.0;
     String password = "password";
+    Currency currency = Currency.EUR;
+    String bankAccountNumber = "123456789";
+    String bankName = "Bank A";
+    String bankRoutingNumber = "111000025";
 
-    // Mock the userRepository behavior to simulate an existing user
+    // Create a UserRegistrationRequest object
+    UserRegistrationRequest request = new UserRegistrationRequest();
+    request.setEmail(email);
+    request.setSocialMediaAcc(socialMediaAcc);
+    request.setBalance(balance);
+    request.setPassword(password);
+    request.setCurrency(String.valueOf(currency));
+    request.setBankAccountNumber(bankAccountNumber);
+    request.setBankName(bankName);
+    request.setBankRoutingNumber(bankRoutingNumber);
+
+    // Mock the userRepository behavior to simulate an existing user with the provided email
     when(userRepository.findByEmail(email)).thenReturn(Optional.of(new User()));
 
     // Act and Assert
     // Verify that UserRegistrationException is thrown when trying to register an existing user
-    assertThrows(UserRegistrationException.class,
-        () -> userService.registerUser(email, socialMediaAcc, balance, password));
+    assertThrows(UserRegistrationException.class, () -> userService.registerUser(request));
 
     // Verify that userRepository's save method is not called
     verify(userRepository, never()).save(any(User.class));

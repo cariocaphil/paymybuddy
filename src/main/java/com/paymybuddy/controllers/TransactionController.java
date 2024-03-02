@@ -46,9 +46,9 @@ public class TransactionController {
 
   @PostMapping("/withdraw-to-bank")
   public ResponseEntity<String> withdrawToBank(@RequestBody WithdrawRequest withdrawRequest) {
-    Logger.info("Received withdrawal request for user ID: {} with amount: {}", withdrawRequest.getUserId(), withdrawRequest.getAmount());
+    Logger.info("Received withdrawal request for user ID: {} with amount: {} and currency: {}", withdrawRequest.getUserId(), withdrawRequest.getAmount(), withdrawRequest.getCurrency());
     try {
-      transactionService.withdrawToBank(withdrawRequest.getUserId(), withdrawRequest.getAmount());
+      transactionService.withdrawToBank(withdrawRequest);
       Logger.info("Withdrawal successful for user ID: {}", withdrawRequest.getUserId());
       return ResponseEntity.ok("Withdrawal successful");
     } catch (IllegalArgumentException | IllegalStateException e) {

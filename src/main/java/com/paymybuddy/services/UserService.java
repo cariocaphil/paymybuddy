@@ -78,13 +78,13 @@ public class UserService implements UserDetailsService {
       throw new IllegalArgumentException("Amount must be a positive or zero value");
     }
 
+    double adjustedAmount = amount;
     if (!user.getCurrency().equals(currency)) {
-      amount = currencyConversionService.convertCurrency(amount, currency, user.getCurrency());
+      adjustedAmount = currencyConversionService.convertCurrency(amount, currency, user.getCurrency());
     }
-    user.setBalance(user.getBalance() + amount);
-    user.setBalance(user.getBalance() + amount);
+    user.setBalance(user.getBalance() + adjustedAmount);
     userRepository.save(user);
-    logger.info("Successfully loaded money to user with id: {}", userId);
+    logger.info("Successfully loaded {} {} to user with id: {}. New balance: {}", adjustedAmount, user.getCurrency(), userId, user.getBalance());
   }
 
   public void registerUser(UserRegistrationRequest request) {

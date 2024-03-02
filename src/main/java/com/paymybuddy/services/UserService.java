@@ -78,13 +78,16 @@ public class UserService implements UserDetailsService {
       throw new IllegalArgumentException("Amount must be a positive or zero value");
     }
 
+    // Ensure user has a currency set, default to USD if not
+    Currency userCurrency = user.getCurrency() != null ? user.getCurrency() : Currency.USD;
     double adjustedAmount = amount;
-    if (!user.getCurrency().equals(currency)) {
-      adjustedAmount = currencyConversionService.convertCurrency(amount, currency, user.getCurrency());
+
+    if (!userCurrency.equals(currency)) {
+      adjustedAmount = currencyConversionService.convertCurrency(amount, currency, userCurrency);
     }
     user.setBalance(user.getBalance() + adjustedAmount);
     userRepository.save(user);
-    logger.info("Successfully loaded {} {} to user with id: {}. New balance: {}", adjustedAmount, user.getCurrency(), userId, user.getBalance());
+    logger.info("Successfully loaded {} {} to user with id: {}. New balance: {}", adjustedAmount, userCurrency, userId, user.getBalance());
   }
 
   public void registerUser(UserRegistrationRequest request) {

@@ -8,6 +8,7 @@ import lombok.Setter;
 public class LoadMoneyRequest {
   private long userId;
   private double amount;
+  private Currency currency; // Use the Currency enum here
 
   public LoadMoneyRequest(long userId, double amount) {
   }

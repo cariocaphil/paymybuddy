@@ -7,6 +7,8 @@ import com.paymybuddy.repository.TransactionRepository;
 import com.paymybuddy.repository.UserRepository;
 import java.time.LocalDateTime;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.tinylog.Logger;
@@ -25,6 +27,15 @@ public class TransactionService {
     // Fetch the current state of the sender and receiver from the database
     User sender = userRepository.findById(transaction.getSender().getUserID())
         .orElseThrow(() -> new IllegalArgumentException("Sender not found."));
+
+    // Obtain the currently authenticated user's email
+    String authenticatedUserEmail = SecurityContextHolder.getContext().getAuthentication().getName();
+
+    // Check if the authenticated user is the sender
+    if (!sender.getEmail().equals(authenticatedUserEmail)) {
+      throw new IllegalStateException("You can only make transactions from your own account.");
+    }
+
     User receiver = userRepository.findById(transaction.getReceiver().getUserID())
         .orElseThrow(() -> new IllegalArgumentException("Receiver not found."));
 
@@ -66,30 +77,41 @@ public class TransactionService {
     return transaction;
   }
 
+
   @Transactional
   public void withdrawToBank(Long userId, double amount) {
+    // Obtain the currently authenticated user's username (or email, depending on your setup)
+    String authenticatedUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+
+    // Fetch the authenticated user entity based on the username
+    User authenticatedUser = userRepository.findByEmail(authenticatedUsername)
+        .orElseThrow(() -> new UsernameNotFoundException("Authenticated user not found"));
+
+    if (!userId.equals(authenticatedUser.getUserID())) {
+      Logger.error("Attempted withdrawal for user ID: {} by authenticated user ID: {}", userId, authenticatedUser.getUserID());
+      throw new IllegalStateException("Withdrawals can only be made from the authenticated user's account.");
+    }
+
     Logger.info("Initiating withdrawal to bank for user ID: {} and amount: {}", userId, amount);
-    User user = userRepository.findById(userId)
-        .orElseThrow(() -> new IllegalArgumentException("User not found with ID: " + userId));
 
     // Check if the user has enough balance to cover the withdrawal
-    if (user.getBalance() < amount) {
+    if (authenticatedUser.getBalance() < amount) {
       Logger.error("Insufficient funds for withdrawal for user ID: {}", userId);
       throw new IllegalStateException("Insufficient funds for withdrawal.");
     }
 
     // Deduct the withdrawal amount from the user's balance
-    double newBalance = user.getBalance() - amount;
-    user.setBalance(newBalance);
-    userRepository.save(user);
+    double newBalance = authenticatedUser.getBalance() - amount;
+    authenticatedUser.setBalance(newBalance);
+    userRepository.save(authenticatedUser);
 
     // Record the withdrawal as a transaction
     Transaction transaction = new Transaction();
     transaction.setAmount(-amount); // Negative to indicate withdrawal
     transaction.setTimestamp(LocalDateTime.now());
-    transaction.setDescription("Withdrawal to bank account: " + user.getBankName());
+    transaction.setDescription("Withdrawal to bank account: " + authenticatedUser.getBankName());
     transaction.setFee(0); // Assuming no fee, adjust as necessary
-    transaction.setSender(user); // In this context, user is both sender and receiver
+    transaction.setSender(authenticatedUser); // In this context, user is both sender and receiver
     transaction.setReceiver(null); // No external receiver for a withdrawal
     transactionRepository.save(transaction);
 

@@ -7,6 +7,7 @@ import com.paymybuddy.models.User.SocialMediaAccount;
 import com.paymybuddy.repository.UserRepository;
 import java.util.Optional;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -37,20 +38,34 @@ public class UserService implements UserDetailsService {
   }
 
   public void addFriend(long userId, long friendId) {
-    logger.info("Attempting to add friend with id: {} to user with id: {}", friendId, userId);
-    User user = getUserById(userId);
-    User friend = getUserById(friendId);
+    // Fetch the email of the currently authenticated user
+    String authenticatedEmail = SecurityContextHolder.getContext().getAuthentication().getName();
 
-    if (user == null || friend == null) {
-      logger.error("User or friend not found for ids: {}, {}", userId, friendId);
-      throw new UserNotFoundException("User or friend not found");
+    // Retrieve the authenticated User entity based on the email
+    User authenticatedUser = userRepository.findByEmail(authenticatedEmail)
+        .orElseThrow(() -> new UsernameNotFoundException("Authenticated user not found"));
+
+    // Check if the userId passed to the method matches the ID of the authenticated user
+    if (authenticatedUser.getUserID() != userId) {
+      logger.error("Attempt to add friend for a different user: Authenticated user ID: {}, Requested user ID: {}", authenticatedUser.getUserID(), userId);
+      throw new IllegalStateException("Users can only add friends to their own account.");
     }
 
+    // Proceed to add the friend if the check passes
+    User user = userRepository.findById(userId)
+        .orElseThrow(() -> new UserNotFoundException("User not found with ID: " + userId));
+    User friend = userRepository.findById(friendId)
+        .orElseThrow(() -> new UserNotFoundException("Friend not found with ID: " + friendId));
+
+    // Adding each other as friends
     user.getConnections().add(friend);
     friend.getConnections().add(user);
+
+    // Saving the updated entities
     userRepository.save(user);
     userRepository.save(friend);
-    logger.info("Successfully added friend relation between users with ids: {} and {}", userId, friendId);
+
+    logger.info("Successfully added friend relation between users with IDs: {} and {}", userId, friendId);
   }
 
   public User getUserById(long userId) {
@@ -59,22 +74,28 @@ public class UserService implements UserDetailsService {
   }
 
   public void loadMoney(long userId, double amount) {
-    logger.info("Loading {} money to user with id: {}", amount, userId);
-    User user = getUserById(userId);
+    // Fetch the email of the currently authenticated user
+    String authenticatedEmail = SecurityContextHolder.getContext().getAuthentication().getName();
 
-    if (user == null) {
-      logger.error("User not found for id: {}", userId);
-      throw new UserNotFoundException("User not found");
+    // Retrieve the authenticated User entity based on the email
+    User authenticatedUser = userRepository.findByEmail(authenticatedEmail)
+        .orElseThrow(() -> new UsernameNotFoundException("Authenticated user not found"));
+
+    // Check if the userId passed to the method matches the ID of the authenticated user
+    if (authenticatedUser.getUserID() != userId) {
+      logger.error("Attempt to load money for a different user: Authenticated user ID: {}, Requested user ID: {}", authenticatedUser.getUserID(), userId);
+      throw new IllegalStateException("Users can only load money into their own account.");
     }
 
+    // Proceed to load money if the check passes
     if (amount < 0) {
       logger.error("Attempt to load a negative amount: {} to user with id: {}", amount, userId);
       throw new IllegalArgumentException("Amount must be a positive or zero value");
     }
 
-    user.setBalance(user.getBalance() + amount);
-    userRepository.save(user);
-    logger.info("Successfully loaded money to user with id: {}", userId);
+    authenticatedUser.setBalance(authenticatedUser.getBalance() + amount);
+    userRepository.save(authenticatedUser);
+    logger.info("Successfully loaded {} to user with id: {}. New balance: {}", amount, userId, authenticatedUser.getBalance());
   }
 
   public void registerUser(String email, String socialMediaAcc, double balance, String password) {

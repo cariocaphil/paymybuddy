@@ -92,6 +92,7 @@ public class TransactionService {
 
     Transaction withdrawalTransaction = new Transaction();
     withdrawalTransaction.setAmount(-amountToWithdraw);
+    withdrawalTransaction.setCurrency(authenticatedUser.getCurrency());
     withdrawalTransaction.setTimestamp(LocalDateTime.now());
     withdrawalTransaction.setDescription("Withdrawal to bank account");
     withdrawalTransaction.setFee(0); // Assuming no fee for withdrawal

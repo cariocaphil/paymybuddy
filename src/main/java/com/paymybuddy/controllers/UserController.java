@@ -1,13 +1,11 @@
 package com.paymybuddy.controllers;
 
 import com.paymybuddy.exceptions.UserNotFoundException;
-import com.paymybuddy.models.Currency;
 import com.paymybuddy.models.LoadMoneyRequest;
 import com.paymybuddy.models.User;
 import com.paymybuddy.services.UserService;
 import java.util.List;
 import java.util.Map;
-import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,22 +18,32 @@ import org.springframework.web.bind.annotation.RestController;
 import org.tinylog.Logger;
 
 @RestController
-@RequestMapping(path="api/v1/users")
-@AllArgsConstructor
+@RequestMapping(path = "api/v1/users")
 public class UserController {
-  @Autowired
+
   private final UserService userService;
 
+  @Autowired
+  public UserController(UserService userService) {
+    this.userService = userService;
+  }
+
   @GetMapping
-  public List<User> getAllUsers(){
+  public List<User> getAllUsers() {
     Logger.info("Received request to get all users");
     return userService.getAllUsers();
   }
 
   @GetMapping("/{userId}")
-  public User getUserById(@PathVariable long userId) {
+  public ResponseEntity<User> getUserById(@PathVariable long userId) {
     Logger.info("Received request to get user with ID: {}", userId);
-    return userService.getUserById(userId);
+    try {
+      User user = userService.getUserById(userId).orElseThrow(() -> new UserNotFoundException("User not found with ID: " + userId));
+      return ResponseEntity.ok(user);
+    } catch (UserNotFoundException e) {
+      Logger.error("User not found for ID: {}", userId, e);
+      return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+    }
   }
 
   @PostMapping("/add-friend")
@@ -45,40 +53,26 @@ public class UserController {
     Logger.info("Received request to add friend with ID: {} to user with ID: {}", friendId, userId);
     try {
       userService.addFriend(userId, friendId);
-      Logger.info("Friend with ID: {} added to user with ID: {} successfully", friendId, userId);
       return ResponseEntity.ok("Friend added successfully");
     } catch (UserNotFoundException e) {
-      Logger.error("User or friend not found for IDs: {} and {}", userId, friendId, e);
       return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User or friend not found");
-    } catch (IllegalArgumentException e) {
-      Logger.error("Invalid user or friend ID for IDs: {} and {}", userId, friendId, e);
-      return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid user or friend ID");
     } catch (Exception e) {
-      Logger.error("Error adding friend for user ID: {} and friend ID: {}", userId, friendId, e);
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error adding friend");
     }
   }
+
   @PostMapping("/load-money")
   public ResponseEntity<String> loadMoney(@RequestBody LoadMoneyRequest loadMoneyRequest) {
-    long userId = loadMoneyRequest.getUserId();
-    double amount = loadMoneyRequest.getAmount();
-    Currency currency = loadMoneyRequest.getCurrency(); // Get the currency from the request
-    Logger.info("Received request to load money for user ID: {} with amount: {} and currency: {}", userId, amount, currency);
+    Logger.info("Received request to load money: {}", loadMoneyRequest);
     try {
-      userService.loadMoney(userId, amount, currency); // Pass the currency to the service method
-      Logger.info("Money loaded successfully for user ID: {} with amount: {} and currency: {}", userId, amount, currency);
+      userService.loadMoney(loadMoneyRequest);
       return ResponseEntity.ok("Money loaded successfully");
     } catch (UserNotFoundException e) {
-      Logger.error("User not found for ID: {}", userId, e);
       return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
     } catch (IllegalArgumentException e) {
-      Logger.error("Invalid user ID, amount, or currency for user ID: {}, amount: {}, and currency: {}", userId, amount, currency, e);
-      return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid user ID, amount, or currency");
+      return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid request");
     } catch (Exception e) {
-      Logger.error("Error loading money for user ID: {}, amount: {}, and currency: {}", userId, amount, currency, e);
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error loading money");
     }
   }
-
-
 }

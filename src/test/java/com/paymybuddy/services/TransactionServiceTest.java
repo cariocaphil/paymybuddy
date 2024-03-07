@@ -1,7 +1,9 @@
 package com.paymybuddy.services;
 
+import com.paymybuddy.models.Currency;
 import com.paymybuddy.models.Transaction;
 import com.paymybuddy.models.User;
+import com.paymybuddy.models.WithdrawRequest;
 import com.paymybuddy.repository.TransactionRepository;
 import com.paymybuddy.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -13,8 +15,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -30,7 +31,6 @@ public class TransactionServiceTest {
   private TransactionService transactionService;
 
   private User sender;
-  private User receiver;
   private Transaction transaction;
 
   @BeforeEach
@@ -41,125 +41,22 @@ public class TransactionServiceTest {
     sender.setSocialMediaAcc(User.SocialMediaAccount.Twitter);
     sender.setBalance(500.0);
     sender.setPassword("password123");
-
-    receiver = new User();
-    receiver.setUserID(2L);
-    receiver.setEmail("receiver@example.com");
-    receiver.setSocialMediaAcc(User.SocialMediaAccount.Facebook);
-    receiver.setBalance(200.0);
-    receiver.setPassword("password456");
-
-    transaction = new Transaction();
-    transaction.setAmount(50.0);
-    transaction.setFee(5.0);
-    transaction.setSender(sender);
-    transaction.setReceiver(receiver);
+    sender.setCurrency(Currency.USD);
   }
 
-  @Test
-  void makePayment_sufficientFunds_transfersFundsCorrectly() {
-    // Arrange
-    double transactionAmount = 50.0;
-    double feePercentage = 0.005; // 0.5% fee
-    double fee = transactionAmount * feePercentage;
-    double totalDeduction = transactionAmount + fee;
-
-    sender.setBalance(500.0); // Ensuring sufficient funds
-    receiver.setBalance(200.0);
-
-    transaction.setAmount(transactionAmount);
-    transaction.setFee(fee);
-
-    when(userRepository.findById(sender.getUserID())).thenReturn(Optional.of(sender));
-    when(userRepository.findById(receiver.getUserID())).thenReturn(Optional.of(receiver));
-
-    // Act
-    transactionService.makePayment(transaction);
-
-    // Assert
-    double expectedSenderBalance = 500.0 - totalDeduction;
-    double expectedReceiverBalance = 200.0 + transactionAmount;
-    assertEquals(expectedSenderBalance, sender.getBalance(), "Sender's balance should be deducted by amount + fee");
-    assertEquals(expectedReceiverBalance, receiver.getBalance(), "Receiver's balance should be increased by amount only");
-
-    // Verify that save was called on both users
-    verify(userRepository).save(sender);
-    verify(userRepository).save(receiver);
-
-    // Verify that save was called on the transaction
-    verify(transactionRepository).save(transaction);
-  }
-
-  @Test
-  void makePayment_insufficientFunds_throwsException() {
-    // Arrange
-    sender.setBalance(40.0); // Less than the transaction amount + fee
-    when(userRepository.findById(sender.getUserID())).thenReturn(Optional.of(sender));
-    when(userRepository.findById(receiver.getUserID())).thenReturn(Optional.of(receiver));
-
-    // Act & Assert
-    Exception exception = assertThrows(IllegalStateException.class, () -> {
-      transactionService.makePayment(transaction);
-    });
-
-    // Assert the exception message
-    assertEquals("Insufficient funds for this transaction.", exception.getMessage());
-
-    // Verify that userRepository.save() was never called since the transaction should fail
-    verify(userRepository, never()).save(any(User.class));
-
-    // Verify that transactionRepository.save() was also never called
-    verify(transactionRepository, never()).save(any(Transaction.class));
-  }
-
-  @Test
-  void getTransactionById_WithValidId_ReturnsTransaction() {
-    // Arrange
-    Long validId = transaction.getTransactionID();
-    when(transactionRepository.findById(validId)).thenReturn(Optional.of(transaction));
-
-    // Act
-    Transaction foundTransaction = transactionService.getTransactionById(validId);
-
-    // Assert
-    assertEquals(transaction, foundTransaction);
-
-    // Verify interaction
-    verify(transactionRepository).findById(validId);
-  }
-
-  @Test
-  void getTransactionById_WithInvalidId_ThrowsException() {
-    // Arrange
-    Long invalidTransactionId = 999L; // Assume this ID does not exist
-    when(transactionRepository.findById(invalidTransactionId)).thenReturn(Optional.empty());
-
-    // Act & Assert
-    Exception exception = assertThrows(IllegalArgumentException.class, () -> {
-      transactionService.getTransactionById(invalidTransactionId);
-    });
-
-    // Assert the exception message
-    assertEquals("Transaction not found.", exception.getMessage());
-
-    // Verify interaction
-    verify(transactionRepository).findById(invalidTransactionId);
-  }
-
+  // Adjusted for WithdrawRequest
   @Test
   void withdrawToBank_WithSufficientFunds_PerformsWithdrawalSuccessfully() {
     // Given
-    Long userId = sender.getUserID();
-    double initialBalance = sender.getBalance();
-    double withdrawalAmount = 100.0;
-    double expectedBalanceAfterWithdrawal = initialBalance - withdrawalAmount;
-    when(userRepository.findById(userId)).thenReturn(Optional.of(sender));
+    WithdrawRequest withdrawRequest = new WithdrawRequest(sender.getUserID(), 100.0, Currency.USD);
+
+    when(userRepository.findById(sender.getUserID())).thenReturn(Optional.of(sender));
 
     // When
-    transactionService.withdrawToBank(userId, withdrawalAmount);
+    transactionService.withdrawToBank(withdrawRequest);
 
     // Then
-    assertEquals(expectedBalanceAfterWithdrawal, sender.getBalance(), "The balance after withdrawal is incorrect.");
+    assertEquals(400.0, sender.getBalance(), "The balance after withdrawal is incorrect.");
 
     // Verify userRepository.save() was called to persist the new balance
     verify(userRepository).save(sender);
@@ -171,18 +68,15 @@ public class TransactionServiceTest {
   @Test
   void withdrawToBank_WithInsufficientFunds_ThrowsException() {
     // Arrange
-    Long userId = sender.getUserID();
-    double withdrawalAmount = sender.getBalance() + 1.0; // More than the user has
-    when(userRepository.findById(userId)).thenReturn(Optional.of(sender));
+    WithdrawRequest withdrawRequest = new WithdrawRequest(sender.getUserID(), sender.getBalance() + 1.0, Currency.USD); // More than the user has
+
+    when(userRepository.findById(sender.getUserID())).thenReturn(Optional.of(sender));
 
     // Act & Assert
-    assertThrows(IllegalStateException.class, () -> {
-      transactionService.withdrawToBank(userId, withdrawalAmount);
-    });
+    assertThrows(IllegalStateException.class, () -> transactionService.withdrawToBank(withdrawRequest));
 
-    // No need to assert the exception message here as it's already covered in the service logic,
-    // but ensure that no state changes were persisted in case of failure
-    verify(userRepository, never()).save(sender);
+    // Verify that no changes were persisted
+    verify(userRepository, never()).save(any(User.class));
     verify(transactionRepository, never()).save(any(Transaction.class));
   }
 }

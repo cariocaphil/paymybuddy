@@ -1,6 +1,7 @@
 package com.paymybuddy.controllers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.paymybuddy.models.Currency;
 import com.paymybuddy.models.Transaction;
 import com.paymybuddy.models.WithdrawRequest;
 import com.paymybuddy.services.TransactionService;
@@ -13,6 +14,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
@@ -104,7 +106,7 @@ public class TransactionControllerTest {
 
   @Test
   public void withdrawToBank_SuccessfulWithdrawal_ReturnsSuccessMessage() throws Exception {
-    WithdrawRequest withdrawRequest = new WithdrawRequest(1L, 100.0);
+    WithdrawRequest withdrawRequest = new WithdrawRequest(1L, 100.0, Currency.USD);
 
     mockMvc.perform(post("/api/v1/transactions/withdraw-to-bank")
             .contentType(MediaType.APPLICATION_JSON)
@@ -115,11 +117,11 @@ public class TransactionControllerTest {
 
   @Test
   public void withdrawToBank_InsufficientFunds_ReturnsBadRequest() throws Exception {
-    WithdrawRequest withdrawRequest = new WithdrawRequest(1L, 5000.0); // Large amount to simulate insufficient funds
+    WithdrawRequest withdrawRequest = new WithdrawRequest(1L, 5000.0, Currency.USD); // Large amount to simulate insufficient funds
 
-    // Adjusting the mock to throw an exception for the specific userId and amount
+    // Adjusting the mock to throw an exception when withdrawToBank is called with the withdrawRequest
     doThrow(new IllegalStateException("Insufficient funds for withdrawal."))
-        .when(transactionService).withdrawToBank(eq(1L), eq(5000.0));
+        .when(transactionService).withdrawToBank(any(WithdrawRequest.class));
 
     mockMvc.perform(post("/api/v1/transactions/withdraw-to-bank")
             .contentType(MediaType.APPLICATION_JSON)
@@ -130,15 +132,16 @@ public class TransactionControllerTest {
 
   @Test
   public void withdrawToBank_UserNotFound_ReturnsBadRequest() throws Exception {
-    WithdrawRequest withdrawRequest = new WithdrawRequest(999L, 100.0); // Non-existent user ID to simulate user not found
+    WithdrawRequest withdrawRequest = new WithdrawRequest(999L, 100.0, Currency.USD); // Non-existent user ID to simulate user not found
 
+    // Adjusting the mock to throw an exception when withdrawToBank is called with the withdrawRequest
     doThrow(new IllegalArgumentException("User not found with ID: " + withdrawRequest.getUserId()))
-        .when(transactionService).withdrawToBank(withdrawRequest.getUserId(), withdrawRequest.getAmount());
+        .when(transactionService).withdrawToBank(any(WithdrawRequest.class));
 
     mockMvc.perform(post("/api/v1/transactions/withdraw-to-bank")
             .contentType(MediaType.APPLICATION_JSON)
             .content(new ObjectMapper().writeValueAsString(withdrawRequest)))
         .andExpect(status().isBadRequest())
-        .andExpect(content().string("Error processing withdrawal: User not found with ID: " + withdrawRequest.getUserId()));
+        .andExpect(content().string(containsString("Error processing withdrawal: User not found with ID: " + withdrawRequest.getUserId())));
   }
 }

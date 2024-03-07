@@ -1,6 +1,9 @@
 package com.paymybuddy.models;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.JoinColumn;
@@ -40,6 +43,10 @@ public class Transaction {
   private String description;
 
   private double fee;
+
+  @Column(name = "currency")
+  @Enumerated(EnumType.STRING)
+  private Currency currency;
 
   @ManyToOne
   @JoinColumn(name = "sender_userid")

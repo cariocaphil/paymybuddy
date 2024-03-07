@@ -1,35 +1,23 @@
 package com.paymybuddy.models;
 
+import com.paymybuddy.models.Currency;
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
 public class WithdrawRequest {
-
-  private Long userId; // or String, depending on how you identify users
+  private long userId;
   private double amount;
+  private Currency currency;
 
-  // Default constructor
-  public WithdrawRequest() {
-  }
+  // Constructors, getters, and setters
+  public WithdrawRequest() {}
 
-  // Constructor with fields
-  public WithdrawRequest(Long userId, double amount) {
+  public WithdrawRequest(long userId, double amount, Currency currency) {
     this.userId = userId;
     this.amount = amount;
-  }
-
-  // Getters and setters
-  public Long getUserId() {
-    return userId;
-  }
-
-  public void setUserId(Long userId) {
-    this.userId = userId;
-  }
-
-  public double getAmount() {
-    return amount;
-  }
-
-  public void setAmount(double amount) {
-    this.amount = amount;
+    this.currency = currency;
   }
 
   // toString method for logging and debugging purposes

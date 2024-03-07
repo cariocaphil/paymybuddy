@@ -37,6 +37,9 @@ public class User {
   public User(long userId, String s, SocialMediaAccount twitter, double v) {
   }
 
+  public User(long userId, String s, SocialMediaAccount twitter, double v, Currency usd) {
+  }
+
   public enum SocialMediaAccount {
     Twitter,
     Facebook,
@@ -58,6 +61,10 @@ public class User {
   private String bankAccountNumber;
   private String bankName;
   private String bankRoutingNumber; // primarily used in the United States
+
+  @Column(name = "currency")
+  @Enumerated(EnumType.STRING)
+  private Currency currency;
 
   @ManyToMany
   @JoinTable(

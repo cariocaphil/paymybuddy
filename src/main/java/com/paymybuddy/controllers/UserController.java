@@ -1,6 +1,7 @@
 package com.paymybuddy.controllers;
 
 import com.paymybuddy.exceptions.UserNotFoundException;
+import com.paymybuddy.models.Currency;
 import com.paymybuddy.models.LoadMoneyRequest;
 import com.paymybuddy.models.User;
 import com.paymybuddy.services.UserService;
@@ -61,21 +62,23 @@ public class UserController {
   public ResponseEntity<String> loadMoney(@RequestBody LoadMoneyRequest loadMoneyRequest) {
     long userId = loadMoneyRequest.getUserId();
     double amount = loadMoneyRequest.getAmount();
-    Logger.info("Received request to load money for user ID: {} with amount: {}", userId, amount);
+    Currency currency = loadMoneyRequest.getCurrency(); // Get the currency from the request
+    Logger.info("Received request to load money for user ID: {} with amount: {} and currency: {}", userId, amount, currency);
     try {
-      userService.loadMoney(userId, amount);
-      Logger.info("Money loaded successfully for user ID: {} with amount: {}", userId, amount);
+      userService.loadMoney(userId, amount, currency); // Pass the currency to the service method
+      Logger.info("Money loaded successfully for user ID: {} with amount: {} and currency: {}", userId, amount, currency);
       return ResponseEntity.ok("Money loaded successfully");
     } catch (UserNotFoundException e) {
       Logger.error("User not found for ID: {}", userId, e);
       return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
     } catch (IllegalArgumentException e) {
-      Logger.error("Invalid user ID or amount for user ID: {} and amount: {}", userId, amount, e);
-      return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid user ID or amount");
+      Logger.error("Invalid user ID, amount, or currency for user ID: {}, amount: {}, and currency: {}", userId, amount, currency, e);
+      return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid user ID, amount, or currency");
     } catch (Exception e) {
-      Logger.error("Error loading money for user ID: {} and amount: {}", userId, amount, e);
+      Logger.error("Error loading money for user ID: {}, amount: {}, and currency: {}", userId, amount, currency, e);
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error loading money");
     }
   }
+
 
 }

@@ -12,6 +12,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
+
 import java.time.LocalDateTime;
 import java.util.Optional;
 
@@ -19,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-public class TransactionServiceTest {
+class TransactionServiceTest {
 
   @Mock
   private TransactionRepository transactionRepository;
@@ -27,39 +31,57 @@ public class TransactionServiceTest {
   @Mock
   private UserRepository userRepository;
 
+  @Mock
+  private CurrencyConversionService currencyConversionService;
+
   @InjectMocks
   private TransactionService transactionService;
 
-  private User sender;
-  private Transaction transaction;
+  private User authenticatedUser;
 
   @BeforeEach
   void setUp() {
-    sender = new User();
-    sender.setUserID(1L);
-    sender.setEmail("sender@example.com");
-    sender.setSocialMediaAcc(User.SocialMediaAccount.Twitter);
-    sender.setBalance(500.0);
-    sender.setPassword("password123");
-    sender.setCurrency(Currency.USD);
+    authenticatedUser = new User();
+    authenticatedUser.setUserID(1L);
+    authenticatedUser.setEmail("user@example.com");
+    authenticatedUser.setSocialMediaAcc(User.SocialMediaAccount.Twitter);
+    authenticatedUser.setBalance(500.0);
+    authenticatedUser.setPassword("password123");
+    authenticatedUser.setCurrency(Currency.USD);
+
+    // Mocking the security context
+    Authentication authentication = mock(Authentication.class);
+    SecurityContext securityContext = mock(SecurityContext.class);
+    when(securityContext.getAuthentication()).thenReturn(authentication);
+    when(authentication.getName()).thenReturn(authenticatedUser.getEmail());
+    SecurityContextHolder.setContext(securityContext);
+
+    // Ensuring findByEmail returns the authenticated user
+    when(userRepository.findByEmail(authenticatedUser.getEmail())).thenReturn(Optional.of(authenticatedUser));
   }
 
-  // Adjusted for WithdrawRequest
   @Test
   void withdrawToBank_WithSufficientFunds_PerformsWithdrawalSuccessfully() {
     // Given
-    WithdrawRequest withdrawRequest = new WithdrawRequest(sender.getUserID(), 100.0, Currency.USD);
+    WithdrawRequest withdrawRequest = new WithdrawRequest(authenticatedUser.getUserID(), 100.0, Currency.USD);
 
-    when(userRepository.findById(sender.getUserID())).thenReturn(Optional.of(sender));
+    // Mocking the userRepository to simulate the balance update
+    doAnswer(invocation -> {
+      User user = invocation.getArgument(0);
+      // This assumes the balance has been correctly updated in the service method
+      authenticatedUser.setBalance(user.getBalance());
+      return null;
+    }).when(userRepository).save(any(User.class));
 
     // When
     transactionService.withdrawToBank(withdrawRequest);
 
     // Then
-    assertEquals(400.0, sender.getBalance(), "The balance after withdrawal is incorrect.");
+    double expectedBalance = 400.0; // Assuming an initial balance of 500.0 and a withdrawal of 100.0
+    assertEquals(expectedBalance, authenticatedUser.getBalance(), "The balance after withdrawal is incorrect.");
 
     // Verify userRepository.save() was called to persist the new balance
-    verify(userRepository).save(sender);
+    verify(userRepository).save(authenticatedUser);
 
     // Verify a withdrawal transaction was recorded
     verify(transactionRepository).save(any(Transaction.class));
@@ -68,12 +90,10 @@ public class TransactionServiceTest {
   @Test
   void withdrawToBank_WithInsufficientFunds_ThrowsException() {
     // Arrange
-    WithdrawRequest withdrawRequest = new WithdrawRequest(sender.getUserID(), sender.getBalance() + 1.0, Currency.USD); // More than the user has
-
-    when(userRepository.findById(sender.getUserID())).thenReturn(Optional.of(sender));
+    WithdrawRequest withdrawRequest = new WithdrawRequest(authenticatedUser.getUserID(), authenticatedUser.getBalance() + 1.0, Currency.USD); // More than the user has
 
     // Act & Assert
-    assertThrows(IllegalStateException.class, () -> transactionService.withdrawToBank(withdrawRequest));
+    assertThrows(IllegalStateException.class, () -> transactionService.withdrawToBank(withdrawRequest), "Expected exception for insufficient funds not thrown.");
 
     // Verify that no changes were persisted
     verify(userRepository, never()).save(any(User.class));

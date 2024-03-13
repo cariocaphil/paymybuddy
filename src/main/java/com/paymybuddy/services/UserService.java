@@ -3,21 +3,23 @@ package com.paymybuddy.services;
 import com.paymybuddy.exceptions.UserNotFoundException;
 import com.paymybuddy.exceptions.UserRegistrationException;
 import com.paymybuddy.models.Currency;
+import com.paymybuddy.models.LoadMoneyRequest;
 import com.paymybuddy.models.User;
 import com.paymybuddy.models.User.SocialMediaAccount;
 import com.paymybuddy.models.UserRegistrationRequest;
 import com.paymybuddy.repository.UserRepository;
-import java.util.Optional;
-import org.springframework.context.annotation.Lazy;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.stereotype.Service;
-import java.util.List;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
 import org.tinylog.Logger;
 import org.tinylog.TaggedLogger;
 
@@ -26,11 +28,10 @@ public class UserService implements UserDetailsService {
   private final UserRepository userRepository;
   private final PasswordEncoder passwordEncoder;
   private final CurrencyConversionService currencyConversionService;
-
   private static final TaggedLogger logger = Logger.tag("UserService");
 
-  public UserService(UserRepository userRepository, @Lazy PasswordEncoder passwordEncoder, CurrencyConversionService currencyConversionService)
- {
+  @Autowired
+  public UserService(UserRepository userRepository, @Lazy PasswordEncoder passwordEncoder, CurrencyConversionService currencyConversionService) {
     this.userRepository = userRepository;
     this.passwordEncoder = passwordEncoder;
     this.currencyConversionService = currencyConversionService;
@@ -43,57 +44,50 @@ public class UserService implements UserDetailsService {
   }
 
   public void addFriend(long userId, long friendId) {
-    logger.info("Attempting to add friend with id: {} to user with id: {}", friendId, userId);
-    User user = getUserById(userId);
-    User friend = getUserById(friendId);
-
-    if (user == null || friend == null) {
-      logger.error("User or friend not found for ids: {}, {}", userId, friendId);
-      throw new UserNotFoundException("User or friend not found");
-    }
+    User user = getUserById(userId).orElseThrow(() -> new UserNotFoundException("User not found with ID: " + userId));
+    User friend = getUserById(friendId).orElseThrow(() -> new UserNotFoundException("Friend not found with ID: " + friendId));
 
     user.getConnections().add(friend);
     friend.getConnections().add(user);
     userRepository.save(user);
     userRepository.save(friend);
-    logger.info("Successfully added friend relation between users with ids: {} and {}", userId, friendId);
+    logger.info("Successfully added friend relation between users with IDs: {} and {}", userId, friendId);
   }
 
-  public User getUserById(long userId) {
-    Optional<User> userOptional = userRepository.findById(userId);
-    return userOptional.orElse(null);
+  public Optional<User> getUserById(long userId) {
+    return userRepository.findById(userId);
   }
 
-  public void loadMoney(long userId, double amount, Currency currency) {
-    logger.info("Loading {} money to user with id: {}", amount, userId);
-    User user = getUserById(userId);
+  public void loadMoney(LoadMoneyRequest loadMoneyRequest) {
+    String authenticatedUserEmail = SecurityContextHolder.getContext().getAuthentication().getName();
+    User authenticatedUser = userRepository.findByEmail(authenticatedUserEmail)
+        .orElseThrow(() -> new UsernameNotFoundException("Authenticated user not found"));
 
-    if (user == null) {
-      logger.error("User not found for id: {}", userId);
-      throw new UserNotFoundException("User not found");
+    // Check if the request is made by the authenticated user
+    if (loadMoneyRequest.getUserId() != authenticatedUser.getUserID()) {
+      throw new IllegalStateException("You can only load money into your own account.");
     }
 
-    if (amount < 0) {
-      logger.error("Attempt to load a negative amount: {} to user with id: {}", amount, userId);
-      throw new IllegalArgumentException("Amount must be a positive or zero value");
+    User user = getUserById(loadMoneyRequest.getUserId())
+        .orElseThrow(() -> new UserNotFoundException("User not found with ID: " + loadMoneyRequest.getUserId()));
+
+    if (loadMoneyRequest.getAmount() < 0) {
+      throw new IllegalArgumentException("Amount must be a positive value");
     }
 
-    // Ensure user has a currency set, default to USD if not
-    Currency userCurrency = user.getCurrency() != null ? user.getCurrency() : Currency.USD;
-    double adjustedAmount = amount;
-
-    if (!userCurrency.equals(currency)) {
-      adjustedAmount = currencyConversionService.convertCurrency(amount, currency, userCurrency);
+    double adjustedAmount = loadMoneyRequest.getAmount();
+    if (!user.getCurrency().equals(loadMoneyRequest.getCurrency())) {
+      adjustedAmount = currencyConversionService.convertCurrency(loadMoneyRequest.getAmount(), loadMoneyRequest.getCurrency(), user.getCurrency());
+      logger.info("Converted load amount from {} {} to {} {}, adjusted amount: {}", loadMoneyRequest.getAmount(), loadMoneyRequest.getCurrency(), user.getCurrency(), adjustedAmount);
     }
+
     user.setBalance(user.getBalance() + adjustedAmount);
     userRepository.save(user);
-    logger.info("Successfully loaded {} {} to user with id: {}. New balance: {}", adjustedAmount, userCurrency, userId, user.getBalance());
+    logger.info("Successfully loaded {} {} to user with ID: {}. New balance: {}", adjustedAmount, user.getCurrency(), user.getUserID(), user.getBalance());
   }
 
   public void registerUser(UserRegistrationRequest request) {
-    logger.info("Registering user with email: {}", request.getEmail());
     if (userRepository.findByEmail(request.getEmail()).isPresent()) {
-      logger.error("User registration attempt failed, email already exists: {}", request.getEmail());
       throw new UserRegistrationException("User with email " + request.getEmail() + " already exists");
     }
 
@@ -101,26 +95,18 @@ public class UserService implements UserDetailsService {
     newUser.setEmail(request.getEmail());
     newUser.setSocialMediaAcc(SocialMediaAccount.valueOf(request.getSocialMediaAcc()));
     newUser.setBalance(request.getBalance());
-    newUser.setCurrency(Currency.valueOf(request.getCurrency())); // Assuming you've already added a currency field
+    newUser.setCurrency(Currency.valueOf(request.getCurrency()));
     newUser.setPassword(passwordEncoder.encode(request.getPassword()));
-    // Set bank account details
-    newUser.setBankAccountNumber(request.getBankAccountNumber());
-    newUser.setBankName(request.getBankName());
-    newUser.setBankRoutingNumber(request.getBankRoutingNumber());
-
     userRepository.save(newUser);
     logger.info("User registered successfully with email: {}", request.getEmail());
   }
 
-
   @Override
   public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-    logger.info("Loading user by username: {}", username);
     User user = userRepository.findByEmail(username)
         .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + username));
 
     List<SimpleGrantedAuthority> authorities = Collections.emptyList();
-    logger.debug("User found with username: {}, proceeding with authentication", username);
     return new org.springframework.security.core.userdetails.User(user.getEmail(), user.getPassword(), authorities);
   }
 }

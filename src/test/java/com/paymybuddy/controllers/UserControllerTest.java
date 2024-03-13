@@ -5,6 +5,7 @@ import com.paymybuddy.models.Currency;
 import com.paymybuddy.models.LoadMoneyRequest;
 import com.paymybuddy.models.User;
 import com.paymybuddy.services.UserService;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -52,7 +53,7 @@ public class UserControllerTest {
     String userEmail = "user@example.com";
     User user = new User();
     user.setEmail(userEmail);
-    when(userService.getUserById(userId)).thenReturn(user);
+    when(userService.getUserById(userId)).thenReturn(Optional.of(user));
 
     mockMvc.perform(get("/api/v1/users/" + userId)
             .contentType(MediaType.APPLICATION_JSON))

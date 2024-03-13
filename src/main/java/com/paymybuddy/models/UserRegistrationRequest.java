@@ -1,5 +1,6 @@
 package com.paymybuddy.models;
 
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -14,4 +15,11 @@ public class UserRegistrationRequest {
   private String bankAccountNumber;
   private String bankName;
   private String bankRoutingNumber;
+
+  public UserRegistrationRequest(String s, String password, String twitter, double v, String usd) {
+  }
+
+  public UserRegistrationRequest(){
+
+  }
 }

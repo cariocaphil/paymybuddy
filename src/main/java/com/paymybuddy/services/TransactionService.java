@@ -6,6 +6,8 @@ import com.paymybuddy.models.WithdrawRequest;
 import com.paymybuddy.repository.TransactionRepository;
 import com.paymybuddy.repository.UserRepository;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -59,6 +61,23 @@ public class TransactionService {
     userRepository.save(receiver);
     transaction.setTimestamp(LocalDateTime.now());
     transactionRepository.save(transaction);
+  }
+
+  public List<Transaction> getTransactionsForUser(Long userId) {
+    // Assuming you have a User object for the currently logged-in user
+    User user = userRepository.findById(userId)
+        .orElseThrow(() -> new IllegalArgumentException("User not found."));
+
+    // Find transactions where the user is either the sender or receiver
+    List<Transaction> sentTransactions = transactionRepository.findAllBySender(user);
+    List<Transaction> receivedTransactions = transactionRepository.findAllByReceiver(user);
+
+    // Combine both lists
+    List<Transaction> allTransactions = new ArrayList<>(sentTransactions);
+    allTransactions.addAll(receivedTransactions);
+
+    Logger.info("Fetched all transactions for user ID: {}", userId);
+    return allTransactions;
   }
 
   public Transaction getTransactionById(Long transactionId) {

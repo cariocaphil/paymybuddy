@@ -1,5 +1,6 @@
 package com.paymybuddy.services;
 
+import com.paymybuddy.dto.TransactionDTO;
 import com.paymybuddy.models.Transaction;
 import com.paymybuddy.models.User;
 import com.paymybuddy.models.WithdrawRequest;
@@ -8,6 +9,8 @@ import com.paymybuddy.repository.UserRepository;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -63,27 +66,54 @@ public class TransactionService {
     transactionRepository.save(transaction);
   }
 
-  public List<Transaction> getTransactionsForUser(Long userId) {
-    // Assuming you have a User object for the currently logged-in user
+  public List<TransactionDTO> getTransactionsForUser(Long userId) {
     User user = userRepository.findById(userId)
         .orElseThrow(() -> new IllegalArgumentException("User not found."));
 
-    // Find transactions where the user is either the sender or receiver
+    // Fetch transactions where the user is the sender
     List<Transaction> sentTransactions = transactionRepository.findAllBySender(user);
+
+    // Fetch transactions where the user is the receiver
     List<Transaction> receivedTransactions = transactionRepository.findAllByReceiver(user);
 
-    // Combine both lists
-    List<Transaction> allTransactions = new ArrayList<>(sentTransactions);
-    allTransactions.addAll(receivedTransactions);
-
-    Logger.info("Fetched all transactions for user ID: {}", userId);
-    return allTransactions;
+    // Combine both lists and convert to DTOs
+    return Stream.concat(sentTransactions.stream(), receivedTransactions.stream())
+        .distinct()
+        .map(this::convertToTransactionDTO)
+        .collect(Collectors.toList());
   }
 
+
   public Transaction getTransactionById(Long transactionId) {
-    Transaction transaction = transactionRepository.findById(transactionId)
+    return transactionRepository.findById(transactionId)
         .orElseThrow(() -> new IllegalArgumentException("Transaction not found."));
-    return transaction;
+  }
+
+  public TransactionDTO convertToTransactionDTO(Transaction transaction) {
+    TransactionDTO dto = new TransactionDTO();
+    dto.setTransactionId(transaction.getTransactionID());
+    dto.setAmount(transaction.getAmount());
+    dto.setTimestamp(transaction.getTimestamp());
+    dto.setDescription(transaction.getDescription());
+    dto.setFee(transaction.getFee());
+    // Handle potential null value for currency
+    if (transaction.getCurrency() != null) {
+      dto.setCurrency(transaction.getCurrency().toString());
+    } else {
+      dto.setCurrency("");
+    }
+    if (transaction.getSender() != null) {
+      dto.setSenderId(transaction.getSender().getUserID());
+
+    } else {
+      dto.setSenderId(0);
+    }
+    if (transaction.getReceiver() != null) {
+      dto.setReceiverId(transaction.getReceiver().getUserID());
+    } else {
+      dto.setReceiverId(0);
+    }
+    return dto;
   }
 
   @Transactional

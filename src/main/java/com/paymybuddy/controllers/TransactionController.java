@@ -1,5 +1,6 @@
 package com.paymybuddy.controllers;
 
+import com.paymybuddy.dto.TransactionDTO;
 import com.paymybuddy.models.Transaction;
 import com.paymybuddy.models.User;
 import com.paymybuddy.models.WithdrawRequest;
@@ -29,13 +30,13 @@ public class TransactionController {
   }
 
   @GetMapping("/my-transactions")
-  public ResponseEntity<List<Transaction>> getMyTransactions() {
+  public ResponseEntity<List<TransactionDTO>> getMyTransactions() {
     // Get the currently logged-in user's details
     String authenticatedUserEmail = SecurityContextHolder.getContext().getAuthentication().getName();
     User user = userRepository.findByEmail(authenticatedUserEmail)
         .orElseThrow(() -> new UsernameNotFoundException("Authenticated user not found"));
 
-    List<Transaction> transactions = transactionService.getTransactionsForUser(user.getUserID());
+    List<TransactionDTO> transactions = transactionService.getTransactionsForUser(user.getUserID());
 
     if (transactions.isEmpty()) {
       return new ResponseEntity<>(HttpStatus.NO_CONTENT);

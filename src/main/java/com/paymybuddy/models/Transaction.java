@@ -1,5 +1,6 @@
 package com.paymybuddy.models;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -50,9 +51,11 @@ public class Transaction {
 
   @ManyToOne
   @JoinColumn(name = "sender_userid")
+  @JsonIgnore
   private User sender;
 
   @ManyToOne
   @JoinColumn(name = "receiver_userid")
+  @JsonIgnore
   private User receiver;
 }

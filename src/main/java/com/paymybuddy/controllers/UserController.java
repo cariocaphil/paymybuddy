@@ -1,5 +1,6 @@
 package com.paymybuddy.controllers;
 
+import com.paymybuddy.dto.UserDTO;
 import com.paymybuddy.exceptions.UserNotFoundException;
 import com.paymybuddy.models.LoadMoneyRequest;
 import com.paymybuddy.models.User;
@@ -9,6 +10,7 @@ import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -73,6 +75,21 @@ public class UserController {
       return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid request");
     } catch (Exception e) {
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error loading money");
+    }
+  }
+
+  @GetMapping("/my-connections")
+  public ResponseEntity<List<UserDTO>> getMyConnections() {
+    String email = SecurityContextHolder.getContext().getAuthentication().getName();
+    try {
+      List<UserDTO> connections = userService.getUserConnections(email);
+      return ResponseEntity.ok(connections);
+    } catch (UserNotFoundException e) {
+      Logger.error("User not found", e);
+      return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+    } catch (Exception e) {
+      Logger.error("Error retrieving connections", e);
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }
   }
 }

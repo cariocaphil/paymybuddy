@@ -1,5 +1,6 @@
 package com.paymybuddy.services;
 
+import com.paymybuddy.dto.UserDTO;
 import com.paymybuddy.exceptions.UserNotFoundException;
 import com.paymybuddy.exceptions.UserRegistrationException;
 import com.paymybuddy.models.Currency;
@@ -8,9 +9,11 @@ import com.paymybuddy.models.User;
 import com.paymybuddy.models.User.SocialMediaAccount;
 import com.paymybuddy.models.UserRegistrationRequest;
 import com.paymybuddy.repository.UserRepository;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -56,6 +59,24 @@ public class UserService implements UserDetailsService {
 
   public Optional<User> getUserById(long userId) {
     return userRepository.findById(userId);
+  }
+
+  public List<UserDTO> getUserConnections(String email) {
+    User user = userRepository.findByEmail(email)
+        .orElseThrow(() -> new UserNotFoundException("User not found for email: " + email));
+
+    // Convert each User connection to a UserDTO
+    return user.getConnections().stream()
+        .map(this::convertToUserDTO)
+        .collect(Collectors.toList());
+  }
+
+  private UserDTO convertToUserDTO(User user) {
+    UserDTO dto = new UserDTO();
+    dto.setUserId(user.getUserID());
+    dto.setEmail(user.getEmail());
+    // Set other properties that you want to include in the DTO
+    return dto;
   }
 
   public void loadMoney(LoadMoneyRequest loadMoneyRequest) {

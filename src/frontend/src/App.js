@@ -1,28 +1,29 @@
-import logo from './logo.svg';
+import React, { useState, useEffect } from 'react';
 import './App.css';
-import { getMyTransactions } from './client'
+import TransactionList from './TransactionList';
 
 function App() {
- getMyTransactions().then(res => res.json())
-      .then(data => {
-          console.log(data);
-      })
+  const [transactions, setTransactions] = useState([]);
+
+  useEffect(() => {
+    const fetchTransactions = async () => {
+      try {
+        const response = await fetch('/api/v1/transactions/my-transactions');
+        if (!response.ok) throw new Error('Network response was not ok');
+        const data = await response.json();
+        setTransactions(data);
+      } catch (error) {
+        console.error('Fetch error:', error);
+      }
+    };
+
+    fetchTransactions();
+  }, []);
+
+
   return (
     <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+      <TransactionList transactions={transactions} />
     </div>
   );
 }

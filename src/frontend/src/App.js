@@ -8,16 +8,6 @@ function App() {
   const [connections, setConnections] = useState([]);
 
   useEffect(() => {
-    const fetchTransactions = async () => {
-      try {
-        const response = await fetch('/api/v1/transactions/my-transactions');
-        if (!response.ok) throw new Error('Network response was not ok');
-        const data = await response.json();
-        setTransactions(data);
-      } catch (error) {
-        console.error('Fetch error:', error);
-      }
-    };
 
   const fetchConnections = async () => {
     try {
@@ -34,10 +24,20 @@ function App() {
     fetchConnections();
   }, []);
 
+    const fetchTransactions = async () => {
+      try {
+        const response = await fetch('/api/v1/transactions/my-transactions');
+        if (!response.ok) throw new Error('Network response was not ok');
+        const data = await response.json();
+        setTransactions(data);
+      } catch (error) {
+        console.error('Fetch error:', error);
+      }
+    };
 
   return (
     <div className="App">
-      <SendMoneyForm connections={connections} />
+      <SendMoneyForm connections={connections} onSuccessfulPayment={fetchTransactions} />
       <TransactionList transactions={transactions} />
     </div>
   );

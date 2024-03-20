@@ -8,6 +8,8 @@ import com.paymybuddy.repository.UserRepository;
 import com.paymybuddy.services.TransactionService;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -42,6 +44,23 @@ public class TransactionController {
       return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
     return new ResponseEntity<>(transactions, HttpStatus.OK);
+  }
+
+  @GetMapping("/my-transactions-paginated")
+  public ResponseEntity<Page<TransactionDTO>> getMyTransactions(
+      @RequestParam(defaultValue = "0") int page,
+      @RequestParam(defaultValue = "10") int size) {
+    // Get the currently logged-in user's details
+    String authenticatedUserEmail = SecurityContextHolder.getContext().getAuthentication().getName();
+    User user = userRepository.findByEmail(authenticatedUserEmail)
+        .orElseThrow(() -> new UsernameNotFoundException("Authenticated user not found"));
+
+    Page<TransactionDTO> transactionsPage = transactionService.getTransactionsForUserPageable(user.getUserID(), PageRequest.of(page, size));
+
+    if (!transactionsPage.hasContent()) {
+      return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    }
+    return new ResponseEntity<>(transactionsPage, HttpStatus.OK);
   }
 
   @PostMapping("/make-payment")

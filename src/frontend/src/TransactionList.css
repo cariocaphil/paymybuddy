@@ -1,0 +1,37 @@
+.transaction-list {
+  margin-top: 30px; /* Add space above the transaction list */
+}
+
+.transaction-list table {
+  width: 100%; /* Make table take full width */
+  border-collapse: collapse; /* Remove gaps between cells */
+}
+
+.transaction-list th,
+.transaction-list td {
+  text-align: left;
+  padding: 10px;
+  border-bottom: 1px solid #ddd; /* Add horizontal lines between rows */
+}
+
+.transaction-list th {
+  background-color: #4caf50; /* Green background for headers */
+  color: white;
+}
+
+.pagination-controls {
+  display: flex;
+  justify-content: center; /* Center the pagination controls */
+  padding: 20px;
+}
+
+.pagination-controls button {
+  padding: 5px 10px;
+  margin: 0 5px;
+  border: 1px solid #ddd; /* Add a border to pagination buttons */
+  background: none;
+}
+
+.pagination-controls button:hover {
+  background-color: #ddd; /* Add hover effect */
+}

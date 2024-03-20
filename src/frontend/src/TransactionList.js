@@ -1,3 +1,5 @@
+import './TransactionList.css';
+
 function TransactionList({ transactions }) {
   return (
     <div className="transaction-list">

@@ -1,6 +1,8 @@
 package com.paymybuddy.models;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -44,6 +46,25 @@ public class Transaction {
   private String description;
 
   private double fee;
+
+  @JsonCreator
+  public Transaction(
+      @JsonProperty("transactionID") long transactionID,
+      @JsonProperty("amount") double amount,
+      @JsonProperty("description") String description,
+      @JsonProperty("fee") double fee,
+      @JsonProperty("currency") Currency currency,
+      @JsonProperty("sender") User sender,
+      @JsonProperty("receiver") User receiver
+  ) {
+    this.transactionID = transactionID;
+    this.amount = amount;
+    this.description = description;
+    this.fee = fee;
+    this.currency = currency;
+    this.sender = sender;
+    this.receiver = receiver;
+  }
 
   @Column(name = "currency")
   @Enumerated(EnumType.STRING)

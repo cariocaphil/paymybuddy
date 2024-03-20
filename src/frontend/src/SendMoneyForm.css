@@ -1,0 +1,70 @@
+.send-money-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.send-money-form {
+  background: #f9f9f9;
+  border-radius: 10px;
+  padding: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    display: flex;
+    justify-content: space-between;
+    flex-direction: row;
+    align-items: center;
+}
+
+.add-connection-button {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.send-money-form select,
+.send-money-form input[type="number"],
+.send-money-form button {
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  height: 40px;
+}
+
+.send-money-form button {
+  background-color: #28a745;
+  color: white;
+  border: none;
+}
+
+.send-money-form button:hover {
+  opacity: 0.9;
+}
+
+.send-money-form label {
+  display: block;
+  margin-bottom: 5px;
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+@media (max-width: 1024px) {
+  .send-money-form {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .send-money-header {
+    flex-wrap: wrap;
+  }
+
+  .add-connection-button {
+    margin-top: 10px;
+  }
+
+ }

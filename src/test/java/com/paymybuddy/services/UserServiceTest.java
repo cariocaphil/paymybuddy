@@ -1,5 +1,6 @@
 package com.paymybuddy.services;
 
+import com.paymybuddy.dto.UserDTO;
 import com.paymybuddy.exceptions.UserNotFoundException;
 import com.paymybuddy.exceptions.UserRegistrationException;
 import com.paymybuddy.models.Currency;
@@ -205,5 +206,39 @@ class UserServiceTest {
     );
 
     assertTrue(exception.getMessage().contains("already exists"));
+  }
+
+  @Test
+  void getUserConnections_WithValidEmail_ReturnsUserDTOList() {
+    // Arrange
+    String email = "user@example.com";
+    User user = new User(1L, "User", User.SocialMediaAccount.Twitter, 100.0, Currency.USD);
+    User friend1 = new User(2L, "Friend1", User.SocialMediaAccount.Facebook, 200.0, Currency.EUR);
+    User friend2 = new User(3L, "Friend2", User.SocialMediaAccount.Twitter, 300.0, Currency.USD);
+    user.setConnections(Arrays.asList(friend1, friend2));
+
+    when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
+
+    // Act
+    List<UserDTO> result = userService.getUserConnections(email);
+
+    // Assert
+    assertNotNull(result);
+    assertEquals(2, result.size());
+    assertTrue(result.stream().anyMatch(dto -> dto.getUserId().equals(friend1.getUserID())));
+    assertTrue(result.stream().anyMatch(dto -> dto.getUserId().equals(friend2.getUserID())));
+  }
+
+  @Test
+  void getUserConnections_WithInvalidEmail_ThrowsUserNotFoundException() {
+    // Arrange
+    String email = "nonexistent@example.com";
+    when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
+
+    // Act & Assert
+    assertThrows(UserNotFoundException.class, () -> userService.getUserConnections(email));
+
+    // Verify repository interaction
+    verify(userRepository).findByEmail(email);
   }
 }

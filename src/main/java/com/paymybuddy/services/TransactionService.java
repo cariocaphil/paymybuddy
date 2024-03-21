@@ -6,12 +6,15 @@ import com.paymybuddy.models.User;
 import com.paymybuddy.models.WithdrawRequest;
 import com.paymybuddy.repository.TransactionRepository;
 import com.paymybuddy.repository.UserRepository;
+import jakarta.persistence.EntityNotFoundException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
@@ -149,5 +152,13 @@ public class TransactionService {
     withdrawalTransaction.setReceiver(null); // No external receiver for a withdrawal
     transactionRepository.save(withdrawalTransaction);
     Logger.info("Withdrawal to bank completed successfully for user ID: {}", withdrawRequest.getUserId());
+  }
+
+  public Page<TransactionDTO> getTransactionsForUserPageable(Long userId, Pageable pageable) {
+    User user = userRepository.findById(userId)
+        .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + userId));
+
+    Page<Transaction> transactionPage = transactionRepository.findBySenderOrReceiver(user, pageable);
+    return transactionPage.map(this::convertToTransactionDTO);
   }
 }

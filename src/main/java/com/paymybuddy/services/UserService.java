@@ -71,7 +71,7 @@ public class UserService implements UserDetailsService {
         .collect(Collectors.toList());
   }
 
-  private UserDTO convertToUserDTO(User user) {
+  public UserDTO convertToUserDTO(User user) {
     UserDTO dto = new UserDTO();
     dto.setUserId(user.getUserID());
     dto.setEmail(user.getEmail());

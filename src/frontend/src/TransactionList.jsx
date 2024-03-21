@@ -1,6 +1,7 @@
 import './TransactionList.css';
+import ReactPaginate from 'react-paginate';
 
-function TransactionList({ transactions }) {
+function TransactionList({ transactions, pageCount, onPageChange }) {
   return (
     <div className="transaction-list">
       <h2>My Transactions</h2>
@@ -14,7 +15,7 @@ function TransactionList({ transactions }) {
           </tr>
         </thead>
         <tbody>
-          {transactions.map((transaction) => (
+          {transactions && transactions.content && transactions.content.map((transaction) => (
             <tr key={transaction.id}>
               <td>{transaction.receiverId}</td>
               <td>{transaction.description}</td>
@@ -24,6 +25,14 @@ function TransactionList({ transactions }) {
           ))}
         </tbody>
       </table>
+      <ReactPaginate
+        previousLabel={'<<'}
+        nextLabel={'>>'}
+        pageCount={pageCount}
+        onPageChange={onPageChange}
+        containerClassName={'pagination'}
+        activeClassName={'active'}
+        />
     </div>
   );
 }

@@ -1,0 +1,37 @@
+@startuml
+
+class User {
+-long userID
+-String email
+-SocialMediaAccount socialMediaAcc
+-double balance
+-String password
+-String bankAccountNumber
+-String bankName
+-String bankRoutingNumber
+-Currency currency
+}
+
+class Transaction {
+-long transactionID
+-double amount
+-LocalDateTime timestamp
+-String description
+-double fee
+-Currency currency
+}
+
+class Currency <<enum>> {
+USD
+EUR
+}
+
+enum SocialMediaAccount {
+Twitter
+Facebook
+}
+
+User "1" -- "*" User : connections
+Transaction "many" -- "1" User : sender
+Transaction "many" -- "1" User : receiver
+@enduml

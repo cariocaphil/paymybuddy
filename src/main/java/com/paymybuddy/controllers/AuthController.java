@@ -40,10 +40,4 @@ public class AuthController {
     }
   }
 
-  // Still, we provide login success
-  @GetMapping("/login-success")
-  public String loginSuccess() {
-    Logger.info("User logged in successfully");
-    return "login-success";
-  }
 }

@@ -70,11 +70,4 @@ public class AuthControllerTest {
     assertEquals("Error during user registration", responseEntity.getBody());
   }
 
-
-  @Test
-  public void testLoginSuccess() {
-    String result = authController.loginSuccess();
-    assertEquals("login-success", result);
-  }
-
 }

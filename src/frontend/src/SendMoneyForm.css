@@ -10,10 +10,10 @@
   border-radius: 10px;
   padding: 20px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    display: flex;
-    justify-content: space-between;
-    flex-direction: row;
-    align-items: center;
+  display: flex;
+  justify-content: space-between;
+  flex-direction: row;
+  align-items: center;
 }
 
 .add-connection-button {
@@ -26,7 +26,7 @@
 }
 
 .send-money-form select,
-.send-money-form input[type="number"],
+.send-money-form input[type='number'],
 .send-money-form button {
   padding: 10px;
   border: 1px solid #ddd;
@@ -66,41 +66,40 @@
   .add-connection-button {
     margin-top: 10px;
   }
+}
 
- }
-
- /* pagination */
- .pagination {
+/* pagination */
+.pagination {
   display: flex;
   justify-content: center;
   list-style: none;
   padding: 0;
- }
+}
 
- .pagination li a {
-   border: 1px solid #dddddd;
-   padding: 8px 16px;
-   text-decoration: none;
-   color: #337ab7;
-   margin: 4px;
- }
+.pagination li a {
+  border: 1px solid #dddddd;
+  padding: 8px 16px;
+  text-decoration: none;
+  color: #337ab7;
+  margin: 4px;
+}
 
- .pagination li.previous a,
- .pagination li.next a,
- .pagination li.break a {
-   border-color: #ffffff;
- }
+.pagination li.previous a,
+.pagination li.next a,
+.pagination li.break a {
+  border-color: #ffffff;
+}
 
- .pagination li.active a {
-   background-color: #337ab7;
-   color: white;
-   border-color: #337ab7;
- }
+.pagination li.active a {
+  background-color: #337ab7;
+  color: white;
+  border-color: #337ab7;
+}
 
- .pagination li.disabled a {
-   color: #dddddd;
- }
+.pagination li.disabled a {
+  color: #dddddd;
+}
 
- .pagination li:hover a {
-   border-color: #337ab7;
- }
+.pagination li:hover a {
+  border-color: #337ab7;
+}

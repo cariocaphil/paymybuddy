@@ -8,21 +8,23 @@ function TransactionList({ transactions, pageCount, onPageChange }) {
       <table>
         <thead>
           <tr>
-          <th>Receiver</th>
+            <th>Receiver</th>
             <th>Description</th>
             <th>Amount</th>
             <th>Currency</th>
           </tr>
         </thead>
         <tbody>
-          {transactions && transactions.content && transactions.content.map((transaction) => (
-            <tr key={transaction.id}>
-              <td>{transaction.receiverId}</td>
-              <td>{transaction.description}</td>
-              <td>{transaction.amount}</td>
-              <td>{transaction.currency}</td>
-            </tr>
-          ))}
+          {transactions &&
+            transactions.content &&
+            transactions.content.map(transaction => (
+              <tr key={transaction.id}>
+                <td>{transaction.receiverId}</td>
+                <td>{transaction.description}</td>
+                <td>{transaction.amount}</td>
+                <td>{transaction.currency}</td>
+              </tr>
+            ))}
         </tbody>
       </table>
       <ReactPaginate
@@ -32,7 +34,7 @@ function TransactionList({ transactions, pageCount, onPageChange }) {
         onPageChange={onPageChange}
         containerClassName={'pagination'}
         activeClassName={'active'}
-        />
+      />
     </div>
   );
 }

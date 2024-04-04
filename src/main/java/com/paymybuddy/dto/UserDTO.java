@@ -1,34 +1,17 @@
 package com.paymybuddy.dto;
 
+import lombok.Getter;
+import lombok.Setter;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 public class UserDTO {
   private Long userId;
-  private String name; // or any other fields you want to include
+  private String name;
+  private String email;
 
-  public UserDTO() {
-  }
-
-  public UserDTO(Long userId, String name) {
-    this.userId = userId;
-    this.name = name;
-  }
-
-  // Getters and setters
-  public Long getUserId() {
-    return userId;
-  }
-
-  public void setUserId(Long userId) {
-    this.userId = userId;
-  }
-
-  public String getName() {
-    return name;
-  }
-
-  public void setName(String name) {
-    this.name = name;
-  }
-
-  public void setEmail(String email) {
-  }
 }

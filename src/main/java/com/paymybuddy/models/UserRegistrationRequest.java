@@ -1,11 +1,12 @@
 package com.paymybuddy.models;
 
-import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Getter
 @Setter
+@NoArgsConstructor
 public class UserRegistrationRequest {
   private String email;
   private String socialMediaAcc;
@@ -16,10 +17,11 @@ public class UserRegistrationRequest {
   private String bankName;
   private String bankRoutingNumber;
 
-  public UserRegistrationRequest(String s, String password, String twitter, double v, String usd) {
-  }
-
-  public UserRegistrationRequest(){
-
+  public UserRegistrationRequest(String email, String password, String socialMediaAcc, double balance, String currency) {
+    this.email = email;
+    this.password = password;
+    this.socialMediaAcc = socialMediaAcc;
+    this.balance = balance;
+    this.currency = currency;
   }
 }

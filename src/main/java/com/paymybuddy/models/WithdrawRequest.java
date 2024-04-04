@@ -3,22 +3,19 @@ package com.paymybuddy.models;
 import com.paymybuddy.models.Currency;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+import lombok.ToString;
 
 @Getter
 @Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@ToString(exclude = "currency")
 public class WithdrawRequest {
   private long userId;
   private double amount;
   private Currency currency;
-
-  // Constructors, getters, and setters
-  public WithdrawRequest() {}
-
-  public WithdrawRequest(long userId, double amount, Currency currency) {
-    this.userId = userId;
-    this.amount = amount;
-    this.currency = currency;
-  }
 
   // toString method for logging and debugging purposes
   @Override
